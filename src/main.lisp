@@ -17,12 +17,16 @@
 
 (defun scenegraph-flow ()
   (scenegraph
-   (transform-node)))
+   (transform-node
+    ((projection-node :aspect (/ 800 600))
+     (player-camera
+      (dude-model))))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
   (with-slots (scene) this
-    (register-resource-loader (make-resource-loader (asset-path "font.brf")))
+    (register-resource-loader (make-resource-loader (asset-path "font.brf")
+                                                    (asset-path "dude-and-mortar.brf")))
     (run (>> (-> ((host)) ()
                (setf (viewport-title) "Mortar Combat")
                (setf (viewport-size) (vec2 800 600)))

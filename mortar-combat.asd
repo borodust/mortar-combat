@@ -14,6 +14,9 @@
   :pathname "src/"
   :components ((:file "packages")
                (:file "utils")
+               (:file "camera")
+               (:file "dude")
+               (:file "shaders/dude")
                (:file "main")))
 
 
