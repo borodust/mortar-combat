@@ -53,7 +53,8 @@
                 skeleton s
                 control-skeleton cs
                 animation a
-                program p))
+                program p)
+          (start-animation animation t))
         (call-next-method))))
 
 
