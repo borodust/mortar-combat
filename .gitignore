@@ -4,9 +4,10 @@
 *.lisp-temp
 
 # emacs junk
-\#*
 *~
-.\#*
+
+# build
+build/
 
 # system dependent junk
 local/
