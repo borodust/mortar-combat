@@ -15,6 +15,7 @@
   :components ((:file "packages")
                (:file "utils")
                (:file "camera")
+               (:file "mortar")
                (:file "dude")
                (:file "shaders/dude")
                (:file "main")))
