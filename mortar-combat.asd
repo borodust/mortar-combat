@@ -15,9 +15,11 @@
   :components ((:file "packages")
                (:file "utils")
                (:file "camera")
+               (:file "ball")
                (:file "mortar")
                (:file "dude")
                (:file "shaders/dude")
+               (:file "shaders/passthru")
                (:file "main")))
 
 

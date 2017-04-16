@@ -61,7 +61,7 @@
 
 
 (defmethod model-graph-assembly-flow ((this dude-model))
-  (with-slots (animation skeleton control-skeleton mesh program color) this
+  (with-slots (animation skeleton mesh program color) this
     (scenegraph
      ((animation-node :frames animation)
       ((animated-skeleton-node :root-bone skeleton)

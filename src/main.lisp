@@ -20,6 +20,7 @@
    (transform-node
     ((projection-node :aspect (/ 800 600))
      (player-camera
+      (ball-model)
       ((transform-node :translation (vec3 -4.0 0.0 0.0))
        (mortar-model)
        ((dude-model :color (vec3 0.4 0.4 0.9) :animation-name "Strafing.animation.1")))

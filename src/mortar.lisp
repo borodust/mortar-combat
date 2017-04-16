@@ -46,7 +46,7 @@
 
 
 (defmethod initialization-flow ((this mortar-model) &key)
-  (with-slots (mesh animation skeleton program animation-name) this
+  (with-slots (mesh animation skeleton program) this
     (>> (resource-flow "Mortar.2" "MortarSkeleton"
                        "MortarRest.animation.2"
                        (shading-program-resource-name "dude-program"))
@@ -60,7 +60,7 @@
 
 
 (defmethod model-graph-assembly-flow ((this mortar-model))
-  (with-slots (animation skeleton control-skeleton mesh program color) this
+  (with-slots (animation skeleton mesh program color) this
     (scenegraph
      ((animation-node :frames animation)
       ((animated-skeleton-node :root-bone skeleton)
