@@ -15,6 +15,7 @@
   :components ((:file "packages")
                (:file "utils")
                (:file "camera")
+               (:file "room")
                (:file "ball")
                (:file "mortar")
                (:file "dude")

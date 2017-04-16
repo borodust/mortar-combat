@@ -47,8 +47,8 @@
 
 (defmethod initialization-flow ((this mortar-model) &key)
   (with-slots (mesh animation skeleton program) this
-    (>> (resource-flow "Mortar.2" "MortarSkeleton"
-                       "MortarRest.animation.2"
+    (>> (resource-flow "mesh.Mortar" "MortarSkeleton"
+                       "animation.MortarRest"
                        (shading-program-resource-name "dude-program"))
         (instantly (m s a p)
           (setf mesh m

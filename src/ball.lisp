@@ -21,7 +21,7 @@
 
 
 (defmethod scene-pass ((this ball-mesh) (pass rendering-pass) input)
-  (with-slots (mesh-asset light program color) this
+  (with-slots (light program color) this
     (with-active-shading-program (program)
       (setf (program-uniform-variable program "modelViewProjection") (model-view-projection-matrix)
             (program-uniform-variable program "normalTransform") (mat4->mat3 (mult *view-matrix*
@@ -41,7 +41,7 @@
 
 (defmethod initialization-flow ((this ball-model) &key)
   (with-slots (mesh program) this
-    (>> (resource-flow "Ball.0" (shading-program-resource-name "passthru-program"))
+    (>> (resource-flow "mesh.Ball" (shading-program-resource-name "passthru-program"))
         (instantly (m p)
           (setf mesh m
                 program p))

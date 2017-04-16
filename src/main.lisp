@@ -20,13 +20,14 @@
    (transform-node
     ((projection-node :aspect (/ 800 600))
      (player-camera
+      (room-model)
       (ball-model)
       ((transform-node :translation (vec3 -4.0 0.0 0.0))
        (mortar-model)
-       ((dude-model :color (vec3 0.4 0.4 0.9) :animation-name "Strafing.animation.1")))
+       ((dude-model :color (vec3 0.4 0.4 0.9) :animation-name "animation.Strafing")))
       ((transform-node :translation (vec3 4.0 0.0 0.0))
        (mortar-model)
-       ((dude-model :color (vec3 0.9 0.4 0.4) :animation-name "Running.animation.0"))))))))
+       ((dude-model :color (vec3 0.9 0.4 0.4) :animation-name "animation.Running"))))))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
@@ -58,6 +59,11 @@
 
 (defun stop ()
   (shutdown))
+
+
+(define-event-handler on-exit viewport-hiding-event (ev)
+  (in-new-thread-waiting
+      (stop)))
 
 
 (defun main (args)

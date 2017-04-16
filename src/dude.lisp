@@ -49,7 +49,7 @@
 
 (defmethod initialization-flow ((this dude-model) &key)
   (with-slots (mesh animation skeleton program animation-name) this
-    (>> (resource-flow "Dude.1" "Stickman" animation-name
+    (>> (resource-flow "mesh.Dude" "Stickman" animation-name
                        (shading-program-resource-name "dude-program"))
         (instantly (m s a p)
           (setf mesh m
