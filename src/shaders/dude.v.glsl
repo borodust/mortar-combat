@@ -21,10 +21,11 @@ out v_PerVertex {
 uniform mat4 modelViewProjection;
 uniform mat3 normalTransform;
 uniform DirectionalLight dLight;
+uniform vec3 baseColor;
 
 void main() {
   mat4 weightedTransform = weightedTransform(vBones, vWeights);
-  color = computeLight(vec4(0.4, 0.2, 0.2, 1.0),
+  color = computeLight(vec4(baseColor, 1.0),
                        normalTransform * mat3(weightedTransform) * vNormal,
                        dLight);
   gl_Position = modelViewProjection * weightedTransform * vec4(vPosition, 1.0);

@@ -20,7 +20,10 @@
    (transform-node
     ((projection-node :aspect (/ 800 600))
      (player-camera
-      (dude-model))))))
+      ((transform-node :translation (vec3 -4.0 0.0 0.0))
+       ((dude-model :color (vec3 0.2 0.2 0.4) :animation-name "Strafing.animation.1")))
+      ((transform-node :translation (vec3 4.0 0.0 0.0))
+       ((dude-model :color (vec3 0.4 0.2 0.2) :animation-name "Running.animation.0"))))))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
