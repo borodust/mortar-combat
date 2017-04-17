@@ -11,7 +11,7 @@
   :license "GPLv3"
   :depends-on (log4cl uiop cl-muth bodge-blobs cl-bodge)
   :serial t
-  :pathname "src/"
+  :pathname "client/src/"
   :components ((:file "packages")
                (:file "utils")
                (:file "camera")
@@ -32,4 +32,21 @@
   :license "GPLv3"
   :depends-on (bodge-blobs mortar-combat cl-bodge/distribution)
   :serial t
+  :pathname "client/"
   :components ((:file "mortar-combat.dist")))
+
+
+(defsystem mortar-combat/proxy
+  :description "Proxy server for Mortar Combat"
+  :version "0.0.1"
+  :author "Pavel Korolev"
+  :mailto "dev@borodust.org"
+  :license "GPLv3"
+  :depends-on (log4cl cl-muth cl-conspack usocket flexi-streams
+                      cl-bodge/engine cl-bodge/utils)
+  :serial t
+  :pathname "proxy/"
+  :components ((:file "packages")
+               (:file "context")
+               (:file "proxy")
+               (:file "commands")))
