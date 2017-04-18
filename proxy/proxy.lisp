@@ -45,16 +45,17 @@
         (when (listen source-stream)
           ;; no need to do full copy, hence no loop: let server do other work in between
           (let ((bytes-read (read-sequence routing-buffer source-stream)))
-            (write-sequence routing-buffer destination-stream :end bytes-read)))))))
+            (write-sequence routing-buffer destination-stream :end bytes-read)
+            (force-output destination-stream)))))))
 
 
 (defun route-stream ()
-  (let* ((arena (find-arena-by-peer (arena-registry-of *system*) *peer*))
-         (arena-server (server-of arena)))
-    (if (eq arena-server *peer*)
-        (loop for client in (clients-of arena)
-           do (pour-stream arena-server client))
-        (pour-stream *peer* arena-server))))
+  (when-let ((arena (find-arena-by-peer (arena-registry-of *system*) *peer*)))
+    (let ((arena-server (server-of arena)))
+      (if (eq arena-server *peer*)
+          (loop for client in (clients-of arena)
+             do (pour-stream arena-server client))
+          (pour-stream *peer* arena-server)))))
 
 
 (defun process-input ()
