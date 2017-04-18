@@ -2,4 +2,6 @@
 
 
 (defpackage :mortar-combat
-  (:use :cl :ge :ge.util))
+  (:use :cl :ge :ge.util :mortar-combat.common)
+  (:export start
+           stop))

@@ -10,23 +10,6 @@
 (define-constant +routing-buffer-size+ (* 64 1024))
 
 
-(defgeneric process-command (command message)
-  (:method (command message)
-    (list :command :error
-          :type :unknown-command
-          :text "Unknown command")))
-
-
-(defmethod process-command :around (command message)
-  (append (list :reply-for (getf message :message-id))
-          (handler-case
-              (call-next-method)
-            (serious-condition ()
-              '(:command :error
-                :type :unhandled-error
-                :text "Error during command execution")))))
-
-
 (defclass mortar-combat-proxy (enableable generic-system)
   ((proxy-socket :initform nil)
    (peer-registry :initform (make-instance 'peer-registry) :reader peer-registry-of)
@@ -47,9 +30,9 @@
   (let ((stream (usocket:socket-stream *connection*)))
     (when (listen stream)
       ;; fixme: make async: read available chunk, don't wait for more
-      (let ((message (conspack:decode-stream stream)))
+      (let ((message (decode-message stream)))
         (when (listp message)
-          (conspack:encode (reply-to message) :stream stream)
+          (encode-message (reply-to message) stream)
           (force-output stream))))))
 
 

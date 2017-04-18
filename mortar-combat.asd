@@ -3,13 +3,27 @@
 (cl:in-package :mortar-combat.def)
 
 
+(defsystem mortar-combat/common
+  :description "Common code between Mortar Combat client and server"
+  :version "0.0.1"
+  :author "Pavel Korolev"
+  :mailto "dev@borodust.org"
+  :license "GPLv3"
+  :depends-on (cl-conspack)
+  :serial t
+  :pathname "common/"
+  :components ((:file "packages")
+               (:file "process-command")))
+
+
 (defsystem mortar-combat
   :description "Multiplayer first-person shooter with mortars"
   :version "0.0.1"
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "GPLv3"
-  :depends-on (log4cl uiop cl-muth bodge-blobs cl-bodge usocket cl-conspack)
+  :depends-on (log4cl uiop cl-muth bodge-blobs cl-bodge usocket
+                      mortar-combat/common)
   :serial t
   :pathname "client/src/"
   :components ((:file "packages")
@@ -43,7 +57,7 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "GPLv3"
-  :depends-on (log4cl cl-muth cl-conspack usocket flexi-streams
+  :depends-on (log4cl cl-muth usocket flexi-streams mortar-combat/common
                       cl-bodge/engine cl-bodge/utils ironclad uuid)
   :serial t
   :pathname "proxy/"

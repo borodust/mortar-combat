@@ -28,7 +28,7 @@
       (loop while enabled-p
          do (log-errors
               (usocket:wait-for-input connection)
-              (let* ((message (conspack:decode-stream (connection-stream-of this)))
+              (let* ((message (decode-message (connection-stream-of this)))
                      (message-id (getf message :reply-for)))
                 (with-instance-lock-held (this)
                   (if-let ((handler (gethash message-id message-table)))
@@ -39,7 +39,7 @@
          finally (usocket:socket-close connection)))))
 
 
-(defun connect-to-server (host &optional (port 8778))
+(defun connect-to-server (host port)
   (make-instance 'connector
                  :connection (usocket:socket-connect host port
                                                      :element-type '(unsigned-byte 8)
@@ -62,11 +62,10 @@
 
 (defun send-command (connector &rest properties &key &allow-other-keys)
   (let ((stream (connection-stream-of connector)))
-    (conspack:encode properties :stream stream)
+    (encode-message properties stream)
     (finish-output stream)))
 
 
-;; (,response (conspack:decode-stream (connection-stream-of ,connector))))
 (defmacro with-response (command-name (&rest properties) response &body body)
     `(destructuring-bind (&key ,@properties &allow-other-keys) ,response
        (check-response ,response ,command-name)
@@ -111,3 +110,8 @@
   (-> (connector :command :get-arena-list) ()
     (with-response :arena-list (list) *message*
       list)))
+
+
+(defun register-game-stream (connector peer-id)
+  (-> (connector :command :register-game-stream :peer-id peer-id) ()
+    (with-response :ok () *message*)))
