@@ -1,10 +1,6 @@
 (in-package :mortar-combat.proxy)
 
 
-(define-constant +ok-reply+ (list :command :ok)
-  :test #'equal)
-
-
 (defmacro when-peer-identified (&body body)
   `(if *peer*
        (progn ,@body)

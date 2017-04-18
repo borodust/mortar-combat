@@ -28,14 +28,16 @@
       (loop while enabled-p
          do (log-errors
               (usocket:wait-for-input connection)
-              (let* ((message (decode-message (connection-stream-of this)))
-                     (message-id (getf message :reply-for)))
-                (with-instance-lock-held (this)
-                  (if-let ((handler (gethash message-id message-table)))
-                    (progn
-                      (remhash message-id message-table)
-                      (funcall handler message))
-                    (log:error "Handler not found for message with id ~A" message-id)))))
+              (let ((message (decode-message (connection-stream-of this))))
+                (if-let ((reply-id (getf message :reply-for)))
+                  (with-instance-lock-held (this)
+                    (if-let ((handler (gethash reply-id message-table)))
+                      (progn
+                        (remhash reply-id message-table)
+                        (funcall handler message))
+                      (log:error "Handler not found for message with id ~A" reply-id)))
+                  (encode-message (process-command (getf message :command) message)
+                                  (connection-stream-of this)))))
          finally (usocket:socket-close connection)))))
 
 
@@ -67,9 +69,9 @@
 
 
 (defmacro with-response (command-name (&rest properties) response &body body)
-    `(destructuring-bind (&key ,@properties &allow-other-keys) ,response
-       (check-response ,response ,command-name)
-       ,@body))
+  `(destructuring-bind (&key ,@properties &allow-other-keys) ,response
+     (check-response ,response ,command-name)
+     ,@body))
 
 
 (defmethod dispatch ((this connector) (task function) invariant &rest keys
@@ -115,3 +117,12 @@
 (defun register-game-stream (connector peer-id)
   (-> (connector :command :register-game-stream :peer-id peer-id) ()
     (with-response :ok () *message*)))
+
+
+(defun ping-peer (connector)
+  (-> (connector :command :ping) ()
+    (with-response :ok () *message*)))
+
+
+(defmethod process-command ((command (eql :ping)) message)
+  +ok-reply+)

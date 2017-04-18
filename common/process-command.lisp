@@ -1,6 +1,10 @@
 (in-package :mortar-combat.common)
 
 
+(define-constant +ok-reply+ (list :command :ok)
+  :test #'equal)
+
+
 (defgeneric process-command (command message)
   (:method (command message)
     (list :command :error

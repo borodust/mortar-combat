@@ -2,7 +2,8 @@
 
 
 (defpackage :mortar-combat.common
-  (:use :cl :ge.ng :ge.util)
-  (:export process-command
+  (:use :cl :ge.util)
+  (:export +ok-reply+
+           process-command
            encode-message
            decode-message))

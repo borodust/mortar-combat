@@ -9,7 +9,7 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "GPLv3"
-  :depends-on (cl-conspack)
+  :depends-on (cl-bodge/utils cl-conspack)
   :serial t
   :pathname "common/"
   :components ((:file "packages")
