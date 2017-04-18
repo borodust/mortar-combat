@@ -1,6 +1,7 @@
 (in-package :mortar-combat.proxy)
 
 (declaim (special *peer*))
+(declaim (special *connection*))
 
 (defvar *main-latch* (mt:make-latch))
 
@@ -25,29 +26,34 @@
    (info-socket :initform nil)))
 
 
-(defun process-request (connection)
+(defun reply-to (message)
+  (handler-case
+      (process-command (getf message :command) message)
+    (serious-condition ()
+      '(:command :error
+        :type :unhandled-error
+        :text "Error during command execution"))))
+
+
+(defun process-request ()
   ;; fixme: record connection's last communication timestamp
   ;;        to autoclose idle connections
-  (let ((stream (usocket:socket-stream connection)))
+  (let ((stream (usocket:socket-stream *connection*)))
     (when (listen stream)
       ;; fixme: make async: read available chunk, don't wait for more
       (let ((message (conspack:decode-stream stream)))
         (when (listp message)
-          (conspack:encode (process-command (getf message :command) message)
-                           :stream stream)
-          (force-output stream)
-          nil)))))
+          (conspack:encode (reply-to message) :stream stream)
+          (force-output stream))))))
 
 
-(defun route-stream (connection)
-  (declare (ignore connection))
-  nil)
+(defun route-stream ())
 
 
-(defun process-input (connection)
-  (if (and *peer* (eq (proxy-connection-of *peer*) connection))
-      (route-stream connection)
-      (process-request connection)))
+(defun process-input ()
+  (if (and *peer* (eq (proxy-connection-of *peer*) *connection*))
+      (route-stream)
+      (process-request)))
 
 
 (defmethod initialize-system :after ((this mortar-combat-proxy))
@@ -64,10 +70,10 @@
           (loop while (enabledp this) do
                (log-errors
                  (loop for rest-connections on (cdr (usocket:wait-for-input sockets))
-                    for connection = (second rest-connections)
-                    when (and connection (usocket:socket-state connection))
-                    do (let ((*peer* (find-peer-by-property (peer-registry-of this) connection)))
-                         (when (process-input connection)
+                    for *connection* = (second rest-connections)
+                    when (and *connection* (usocket:socket-state *connection*))
+                    do (let ((*peer* (find-peer-by-property (peer-registry-of this) *connection*)))
+                         (when (process-input)
                            (pop (cdr rest-connections)))))
                  (cond
                    ((usocket:socket-state info-socket) (%accept info-socket))
