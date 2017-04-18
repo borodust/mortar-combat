@@ -43,10 +43,12 @@
   :mailto "dev@borodust.org"
   :license "GPLv3"
   :depends-on (log4cl cl-muth cl-conspack usocket flexi-streams
-                      cl-bodge/engine cl-bodge/utils)
+                      cl-bodge/engine cl-bodge/utils ironclad uuid)
   :serial t
   :pathname "proxy/"
   :components ((:file "packages")
-               (:file "context")
+               (:file "utils")
+               (:file "arena")
+               (:file "peer")
                (:file "proxy")
                (:file "commands")))
