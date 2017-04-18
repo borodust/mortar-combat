@@ -57,3 +57,14 @@
           (list :command :error
                 :type :arena-not-found
                 :text (format nil "Arena with name '~A' not found" name)))))))
+
+
+(defmethod process-command ((command (eql :register-game-stream)) message)
+  (destructuring-bind (&key peer-id &allow-other-keys) message
+    (let ((reg (peer-registry-of *system*)))
+      (if-let ((peer (find-peer-by-id reg peer-id)))
+        (prog1 +ok-reply+
+          (update-peer-proxy-connection reg peer *connection*))
+        (list :command :error
+              :type :peer-not-found
+              :text (format nil "Peer with id ~A not found" peer-id))))))
