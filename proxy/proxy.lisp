@@ -17,10 +17,14 @@
           :text "Unknown command")))
 
 
+(defmethod process-command :around (command message)
+  (append (list :reply-for (getf message :message-id)) (call-next-method)))
+
+
 (defclass mortar-combat-proxy (enableable generic-system)
   ((proxy-socket :initform nil)
    (peer-registry :initform (make-instance 'peer-registry) :reader peer-registry-of)
-   (arenas :initform (make-hash-table :test #'equal))
+   (arenas :initform (make-hash-table :test #'equal) :reader arena-list-of)
    (routing-buffer :initform (make-array +routing-buffer-size+
                                          :element-type '(unsigned-byte 8)))
    (info-socket :initform nil)))

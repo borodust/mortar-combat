@@ -12,3 +12,12 @@
     (list :command :identified
           :name (name-of peer)
           :id (id-of peer))))
+
+
+(defmethod process-command ((command (eql :get-arena-list)) message))
+
+
+(defmethod process-command ((command (eql :create-arena)) message))
+
+
+(defmethod process-command ((command (eql :join-arena)) message))

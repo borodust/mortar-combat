@@ -9,7 +9,7 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "GPLv3"
-  :depends-on (log4cl uiop cl-muth bodge-blobs cl-bodge)
+  :depends-on (log4cl uiop cl-muth bodge-blobs cl-bodge usocket cl-conspack)
   :serial t
   :pathname "client/src/"
   :components ((:file "packages")
@@ -21,7 +21,8 @@
                (:file "dude")
                (:file "shaders/dude")
                (:file "shaders/passthru")
-               (:file "main")))
+               (:file "main")
+               (:file "connector")))
 
 
 (defsystem mortar-combat/distrib
