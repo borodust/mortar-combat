@@ -18,12 +18,19 @@
 
 
 (defmethod process-command :around (command message)
-  (append (list :reply-for (getf message :message-id)) (call-next-method)))
+  (append (list :reply-for (getf message :message-id))
+          (handler-case
+              (call-next-method)
+            (serious-condition ()
+              '(:command :error
+                :type :unhandled-error
+                :text "Error during command execution")))))
 
 
 (defclass mortar-combat-proxy (enableable generic-system)
   ((proxy-socket :initform nil)
    (peer-registry :initform (make-instance 'peer-registry) :reader peer-registry-of)
+   (arena-registry :initform (make-instance 'arena-registry) :reader arena-registry-of)
    (arenas :initform (make-hash-table :test #'equal) :reader arena-list-of)
    (routing-buffer :initform (make-array +routing-buffer-size+
                                          :element-type '(unsigned-byte 8)))
@@ -31,12 +38,7 @@
 
 
 (defun reply-to (message)
-  (handler-case
-      (process-command (getf message :command) message)
-    (serious-condition ()
-      '(:command :error
-        :type :unhandled-error
-        :text "Error during command execution"))))
+  (process-command (getf message :command) message))
 
 
 (defun process-request ()
@@ -51,7 +53,25 @@
           (force-output stream))))))
 
 
-(defun route-stream ())
+(defun pour-stream (source-peer destination-peer)
+  (with-slots (routing-buffer) *system*
+    (when-let ((src-conn (proxy-connection-of source-peer))
+               (dst-conn (proxy-connection-of destination-peer)))
+      (let ((source-stream (usocket:socket-stream src-conn))
+            (destination-stream (usocket:socket-stream dst-conn)))
+        (when (listen source-stream)
+          ;; no need to do full copy, hence no loop: let server do other work in between
+          (let ((bytes-read (read-sequence routing-buffer source-stream)))
+            (write-sequence routing-buffer destination-stream :end bytes-read)))))))
+
+
+(defun route-stream ()
+  (let* ((arena (find-arena-by-peer (arena-registry-of *system*) *peer*))
+         (arena-server (server-of arena)))
+    (if (eq arena-server *peer*)
+        (loop for client in (clients-of arena)
+           do (pour-stream arena-server client))
+        (pour-stream *peer* arena-server))))
 
 
 (defun process-input ()
@@ -92,6 +112,11 @@
   (with-slots (proxy-socket info-socket) this
     (usocket:socket-close proxy-socket)
     (usocket:socket-close info-socket)))
+
+
+(define-system-function find-arena mortar-combat-proxy (name)
+  (with-slots (arenas) *system*
+    (gethash name arenas)))
 
 
 (defun start ()

@@ -26,7 +26,7 @@
   (with-slots (connection message-table enabled-p) this
     (in-new-thread "connector-thread"
       (loop while enabled-p
-         do (progn
+         do (log-errors
               (usocket:wait-for-input connection)
               (let* ((message (conspack:decode-stream (connection-stream-of this)))
                      (message-id (getf message :reply-for)))
@@ -95,3 +95,19 @@
   (-> (connector :command :identify :name name) ()
     (with-response :identified (id name) *message*
       (make-server-identity id name))))
+
+
+(defun create-arena (connector name)
+  (-> (connector :command :create-arena :name name) ()
+    (with-response :ok () *message*)))
+
+
+(defun join-arena (connector name)
+  (-> (connector :command :join-arena :name name) ()
+    (with-response :ok () *message*)))
+
+
+(defun get-arena-list (connector)
+  (-> (connector :command :get-arena-list) ()
+    (with-response :arena-list (list) *message*
+      list)))

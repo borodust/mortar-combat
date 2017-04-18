@@ -20,19 +20,18 @@
         peer-table
       (when info
         (error "Peer was already registered for provided connection ~A" info))
-      (when peer-by-name
-        (error "Peer with name ~A exists" name))
-      (let* ((id (loop for id = (make-random-uuid)
-                    while (gethash id peer-by-id)
-                    finally (return id)))
-             (peer (make-instance 'peer
-                                  :id id
-                                  :name name
-                                  :info-connection connection)))
-        (setf info peer
-              name peer
-              (gethash id peer-by-id) peer)
-        peer))))
+      (unless peer-by-name
+        (let* ((id (loop for id = (make-random-uuid)
+                      while (gethash id peer-by-id)
+                      finally (return id)))
+               (peer (make-instance 'peer
+                                    :id id
+                                    :name name
+                                    :info-connection connection)))
+          (setf info peer
+                name peer
+                (gethash id peer-by-id) peer)
+          peer)))))
 
 
 (defun find-peer-by-property (registry value)
