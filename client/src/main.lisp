@@ -21,13 +21,9 @@
     ((projection-node :aspect (/ 800 600))
      (player-camera
       (room-model)
-      (ball-model)
-      ((transform-node :translation (vec3 -4.0 0.0 0.0))
-       (mortar-model)
-       ((dude-model :color (vec3 0.4 0.4 0.9) :animation-name "animation.Strafing")))
       ((transform-node :translation (vec3 4.0 0.0 0.0))
        (mortar-model)
-       ((dude-model :color (vec3 0.9 0.4 0.4) :animation-name "animation.Running"))))))))
+       ((dude-model :color (vec3 0.9 0.4 0.4) :animation-name "animation.Resting"))))))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
