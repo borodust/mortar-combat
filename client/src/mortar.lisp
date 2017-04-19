@@ -54,14 +54,13 @@
           (setf mesh m
                 skeleton s
                 animation a
-                program p)
-          (start-animation animation t))
+                program p))
         (call-next-method))))
 
 
 (defmethod model-graph-assembly-flow ((this mortar-model))
   (with-slots (animation skeleton mesh program color) this
     (scenegraph
-     ((animation-node :frames animation)
+     ((animation-node :initial-animation animation)
       ((animated-skeleton-node :root-bone skeleton)
        ((mortar-mesh :mesh mesh :program program)))))))

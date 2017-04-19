@@ -23,7 +23,7 @@
       (room-model)
       ((transform-node :translation (vec3 4.0 0.0 0.0))
        (mortar-model)
-       ((dude-model :color (vec3 0.9 0.4 0.4) :animation-name "animation.Resting"))))))))
+       ((dude-model :color (vec3 0.9 0.4 0.4) :animation-name "animation.Running"))))))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
