@@ -28,7 +28,8 @@
       (loop while enabled-p
          do (log-errors
               (usocket:wait-for-input connection)
-              (let ((message (decode-message (connection-stream-of this))))
+              (let* ((stream (connection-stream-of this))
+                     (message (decode-message stream)))
                 (if-let ((reply-id (getf message :reply-for)))
                   (with-instance-lock-held (this)
                     (if-let ((handler (gethash reply-id message-table)))
@@ -36,8 +37,9 @@
                         (remhash reply-id message-table)
                         (funcall handler message))
                       (log:error "Handler not found for message with id ~A" reply-id)))
-                  (encode-message (process-command (getf message :command) message)
-                                  (connection-stream-of this)))))
+                  (progn
+                    (encode-message (process-command (getf message :command) message) stream)
+                    (force-output stream)))))
          finally (usocket:socket-close connection)))))
 
 

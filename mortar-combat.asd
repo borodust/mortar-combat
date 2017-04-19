@@ -57,7 +57,7 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "GPLv3"
-  :depends-on (log4cl cl-muth usocket flexi-streams mortar-combat/common
+  :depends-on (log4cl cl-muth cl-async flexi-streams mortar-combat/common
                       cl-bodge/engine cl-bodge/utils ironclad uuid)
   :serial t
   :pathname "proxy/"

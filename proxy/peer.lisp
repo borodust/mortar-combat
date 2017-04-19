@@ -15,11 +15,11 @@
 
 (defun register-peer (registry connection name)
   (with-slots (peer-table peer-by-id) registry
-    (with-hash-entries ((info connection)
+    (with-hash-entries ((peer-by-info connection)
                         (peer-by-name name))
         peer-table
-      (when info
-        (error "Peer was already registered for provided connection ~A" info))
+      (when peer-by-info
+        (error "Peer was already registered for provided connection ~A" peer-by-info))
       (unless peer-by-name
         (let* ((id (loop for id = (make-random-uuid)
                       while (gethash id peer-by-id)
@@ -28,8 +28,8 @@
                                     :id id
                                     :name name
                                     :info-connection connection)))
-          (setf info peer
-                name peer
+          (setf peer-by-info peer
+                peer-by-name peer
                 (gethash id peer-by-id) peer)
           peer)))))
 
@@ -46,7 +46,7 @@
 
 (defun update-peer-proxy-connection (registry peer proxy-connection)
   (with-slots (peer-table) registry
-    (with-slots ((peer-proxy proxy-connection)) peer
-      (remhash (proxy-connection-of peer) peer-table)
-      (setf peer-proxy proxy-connection
-            (gethash proxy-connection peer-table) peer))))
+    (remhash (proxy-connection-of peer) peer-table)
+    (setf (gethash proxy-connection peer-table) peer))
+  (with-slots ((peer-proxy proxy-connection) proxy-stream) peer
+    (setf peer-proxy proxy-connection)))
