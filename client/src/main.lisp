@@ -23,7 +23,7 @@
       (room-model)
       ((transform-node :translation (vec3 4.0 0.0 0.0))
        (mortar-model)
-       ((dude-model :color (vec3 0.9 0.4 0.4) :animation-name "animation.Running"))))))))
+       ((dude-model :color (vec3 0.9 0.4 0.4)))))))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
@@ -35,6 +35,8 @@
                (setf (viewport-size) (vec2 800 600)))
              (-> ((physics)) ()
                (setf (gravity) (vec3 0.0 -9.81 0.0)))
+             (-> ((graphics)) ()
+               (gl:viewport 0 0 800 600))
              (scenegraph-flow)
              (instantly (scenegraph-root)
                (setf scene (make-scene (make-pass-chain (make-simulation-pass)

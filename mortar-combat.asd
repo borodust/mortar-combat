@@ -28,6 +28,7 @@
   :pathname "client/src/"
   :components ((:file "packages")
                (:file "utils")
+               (:file "keymap")
                (:file "camera")
                (:file "room")
                (:file "ball")
