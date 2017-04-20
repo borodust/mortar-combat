@@ -24,8 +24,7 @@
   (with-slots (light program color) this
     (with-active-shading-program (program)
       (setf (program-uniform-variable program "modelViewProjection") (model-view-projection-matrix)
-            (program-uniform-variable program "normalTransform") (mat4->mat3 (mult *view-matrix*
-                                                                                   *model-matrix*))
+            (program-uniform-variable program "normalTransform") (mat4->mat3 *model-matrix*)
             (program-uniform-variable program "baseColor") color)
       (apply-light-source light program)
       (call-next-method))))

@@ -24,8 +24,7 @@
   (with-slots (mesh-asset light program color) this
     (with-active-shading-program (program)
       (setf (program-uniform-variable program "modelViewProjection") (model-view-projection-matrix)
-            (program-uniform-variable program "normalTransform") (mat4->mat3 (mult *view-matrix*
-                                                                                   *model-matrix*))
+            (program-uniform-variable program "normalTransform") (mat4->mat3 *model-matrix*)
             (program-uniform-variable program "baseColor") color)
       (apply-light-source light program)
       (loop for (name . offset) across (mesh-asset-bones mesh-asset)
@@ -67,17 +66,7 @@
                 run-animation run
                 rest-animation rest
                 program p))
-        (call-next-method)
-        (instantly ()
-          (let ((node (find-node (model-root-of this) :dude-animation)))
-            (subscribe-body-to (keyboard-event (key state)) (events)
-              (case key
-                (:w (case state
-                      (:pressed (play-node-animation node run-animation 0.15))
-                      (:released (play-node-animation node rest-animation 0.15))))
-                (:d (case state
-                      (:pressed  (play-node-animation node strafe-animation 0.15))
-                      (:released (play-node-animation node rest-animation 0.15)))))))))))
+        (call-next-method))))
 
 
 (defmethod model-graph-assembly-flow ((this dude-model))

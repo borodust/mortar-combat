@@ -15,13 +15,16 @@
     (let ((eve (events)))
       (flet ((register-callback (class action)
                (push (cons class (subscribe-to class action eve)) callbacks))
-             (process-button-event (ev)
+             (process-key-event (ev)
                (when-let ((action (gethash (key-from ev) key-table)))
+                 (funcall action (state-from ev))))
+             (process-button-event (ev)
+               (when-let ((action (gethash (button-from ev) key-table)))
                  (funcall action (state-from ev))))
              (process-cursor-event (ev)
                (when cursor-action
                  (funcall cursor-action (x-from ev) (y-from ev)))))
-        (register-callback 'keyboard-event #'process-button-event)
+        (register-callback 'keyboard-event #'process-key-event)
         (register-callback 'mouse-event #'process-button-event)
         (register-callback 'cursor-event #'process-cursor-event)))))
 

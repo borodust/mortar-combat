@@ -29,6 +29,7 @@
   :components ((:file "packages")
                (:file "utils")
                (:file "keymap")
+               (:file "player")
                (:file "camera")
                (:file "room")
                (:file "ball")

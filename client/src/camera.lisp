@@ -1,10 +1,15 @@
 (in-package :mortar-combat)
 
 
-(defclass player-camera (camera-node) ())
+(defclass player-camera (camera-node)
+  ((player :initarg :player)
+   (front-gaze :initform (vec3 0.0 0.0 -1.0))))
 
 
 (defmethod scene-pass ((this player-camera) pass input)
-  (setf (transform-of this) (mult (translation-mat4 0 -4 -50)
-                                  (euler-angles->mat4 (vec3 (/ pi 4) (/ pi 8) 0))))
+  (with-slots (player front-gaze) this
+    (let* ((pos (position-of player))
+           (rotation (rotation-of player)))
+      (setf (transform-of this) (mult (euler-angles->mat4 (vec3 (- (x rotation)) (y rotation) 0.0))
+                                      (translation-mat4 (- (x pos)) -10.0 (- (y pos)))))))
   (call-next-method))
