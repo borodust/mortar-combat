@@ -1,14 +1,14 @@
 (in-package :mortar-combat)
 
 
-
+(defclass floor-geom (collidable plane-geom) ())
 (defclass room-floor (disposable)
   (geom))
 
 
 (defmethod initialize-instance :after ((this room-floor) &key)
   (with-slots (geom) this
-    (setf geom (make-instance 'plane-geom :normal (vec3 0.0 1.0 0.0)))))
+    (setf geom (make-instance 'floor-geom :normal (vec3 0.0 1.0 0.0)))))
 
 
 (define-destructor room-floor (geom)

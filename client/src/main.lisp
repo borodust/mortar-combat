@@ -1,7 +1,9 @@
 (in-package :mortar-combat)
 
 
+(define-constant +framestep+ 0.016)
 (defvar *main-latch* (mt:make-latch))
+
 
 
 (defclass mortar-combat (enableable generic-system)
@@ -23,6 +25,7 @@
     ((projection-node :aspect (/ 800 600))
      ((player-camera :player player)
       (room-model)
+      (ball-model)
       ((transform-node :translation (vec3 4.0 0.0 0.0))
        (mortar-model)
        ((dude-model :color (vec3 0.9 0.4 0.4)))))))))
@@ -83,7 +86,9 @@
                                        scenegraph-root)))
              (concurrently ()
                (let (looped-flow)
-                 (setf looped-flow (>> (scene-processing-flow scene)
+                 (setf looped-flow (>> (-> ((physics)) ()
+                                         (observe-universe +framestep+))
+                                       (scene-processing-flow scene)
                                        (instantly ()
                                          (when (enabledp this)
                                            (run looped-flow)))))

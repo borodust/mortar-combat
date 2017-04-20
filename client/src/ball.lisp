@@ -1,6 +1,29 @@
 (in-package :mortar-combat)
 
 
+(defclass ball-geom (collidable sphere-geom) ())
+(defclass ball-body (disposable)
+  (body geom))
+
+
+(defmethod initialize-instance :after ((this ball-body) &key)
+  (with-slots (body geom) this
+    (setf body (make-rigid-body)
+          geom (make-instance 'ball-geom :radius 1.025))
+    (bind-geom geom body)
+
+    (setf (position-of body) (vec3 0.0 10.0 0.0))))
+
+
+(defmethod transform-of ((this ball-body))
+  (with-slots (body) this
+    (transform-of body)))
+
+
+(define-destructor ball-body (body geom)
+  (dispose geom)
+  (dispose body))
+
 ;;;
 ;;;
 ;;;
@@ -34,17 +57,35 @@
 ;;;
 ;;;
 (defclass ball-model (model)
-  ((mesh :initform nil)
-   (program :initform nil)))
+  (body mesh program))
 
 
 (defmethod initialization-flow ((this ball-model) &key)
-  (with-slots (mesh program) this
+  (with-slots (body mesh program) this
     (>> (resource-flow "mesh.Ball" (shading-program-resource-name "passthru-program"))
         (instantly (m p)
           (setf mesh m
                 program p))
+        (-> ((physics)) ()
+          (setf body (make-instance 'ball-body)))
         (call-next-method))))
+
+
+(defmethod discard-node :before ((this ball-model))
+  (with-slots (body) this
+    (dispose body)))
+
+
+(defmethod scene-pass ((this ball-model) (pass simulation-pass) input)
+  (with-slots (body) this
+    (let ((result (transform-of body)))
+      (call-next-method)
+      result)))
+
+
+(defmethod scene-pass ((this ball-model) (pass rendering-pass) ball-transform)
+  (let ((*model-matrix* (mult *model-matrix* ball-transform)))
+    (call-next-method)))
 
 
 (defmethod model-graph-assembly-flow ((this ball-model))
