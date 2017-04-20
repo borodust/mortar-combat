@@ -8,6 +8,13 @@
    (key-table :initform (make-hash-table :test 'eq))))
 
 
+(defun mouse-button->keymap-button (button)
+  (case button
+    (:left :mouse-left)
+    (:right :mouse-right)
+    (:middle :mouse-middle)))
+
+
 (defun enable-keymap (keymap)
   (with-slots (callbacks cursor-action key-table) keymap
     (when callbacks
@@ -19,8 +26,9 @@
                (when-let ((action (gethash (key-from ev) key-table)))
                  (funcall action (state-from ev))))
              (process-button-event (ev)
-               (when-let ((action (gethash (button-from ev) key-table)))
-                 (funcall action (state-from ev))))
+               (let ((button (mouse-button->keymap-button (button-from ev))))
+                 (when-let ((action (gethash button key-table)))
+                   (funcall action (state-from ev)))))
              (process-cursor-event (ev)
                (when cursor-action
                  (funcall cursor-action (x-from ev) (y-from ev)))))

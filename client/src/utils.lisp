@@ -6,3 +6,6 @@
 
 (defun asset-path (file)
   (merge-pathnames file (merge-working-pathname (property :assets "assets/"))))
+
+
+(defgeneric scene-of (obj))

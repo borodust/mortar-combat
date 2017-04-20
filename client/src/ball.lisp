@@ -6,13 +6,15 @@
   (body geom))
 
 
-(defmethod initialize-instance :after ((this ball-body) &key)
+(defmethod initialize-instance :after ((this ball-body) &key position force)
   (with-slots (body geom) this
     (setf body (make-rigid-body)
-          geom (make-instance 'ball-geom :radius 1.025))
-    (bind-geom geom body)
-
-    (setf (position-of body) (vec3 0.0 10.0 0.0))))
+          geom (make-instance 'ball-geom :radius (/ 1.025 2)))
+    (when force
+      (apply-force body force))
+    (when position
+      (setf (position-of body) position))
+    (bind-geom geom body)))
 
 
 (defmethod transform-of ((this ball-body))
@@ -60,14 +62,14 @@
   (body mesh program))
 
 
-(defmethod initialization-flow ((this ball-model) &key)
+(defmethod initialization-flow ((this ball-model) &key position force)
   (with-slots (body mesh program) this
     (>> (resource-flow "mesh.Ball" (shading-program-resource-name "passthru-program"))
         (instantly (m p)
           (setf mesh m
                 program p))
         (-> ((physics)) ()
-          (setf body (make-instance 'ball-body)))
+          (setf body (make-instance 'ball-body :position position :force force)))
         (call-next-method))))
 
 
@@ -84,7 +86,7 @@
 
 
 (defmethod scene-pass ((this ball-model) (pass rendering-pass) ball-transform)
-  (let ((*model-matrix* (mult *model-matrix* ball-transform)))
+  (let ((*model-matrix* ball-transform))
     (call-next-method)))
 
 

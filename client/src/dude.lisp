@@ -1,6 +1,41 @@
 (in-package :mortar-combat)
 
 
+(defclass dude-bounds (collidable cylinder-geom) ())
+
+
+(defclass dude-body (disposable)
+  (body bounds))
+
+
+(defmethod initialize-instance :after ((this dude-body) &key)
+  (with-slots (body bounds) this
+    (setf body (make-rigid-body)
+          bounds (make-instance 'dude-bounds
+                                :radius 2.0
+                                :length 13.0))
+    #++(bind-geom bounds body)))
+
+
+(define-destructor dude-body (body bounds)
+  (dispose bounds)
+  (dispose body))
+
+
+(defmethod (setf position-of) (value (this dude-body))
+  (with-slots (body) this
+    (setf (position-of body) value)))
+
+
+(defmethod transform-of ((this dude-body))
+  (with-slots (body) this
+    (transform-of body)))
+
+
+(defmethod rotation-of ((this dude-body))
+  (with-slots (body) this
+    (rotation-of body)))
+
 ;;;
 ;;;
 ;;;
@@ -33,12 +68,12 @@
                  (mult (bone-transform name) offset)))
       (call-next-method))))
 
-
 ;;;
 ;;;
 ;;;
 (defclass dude-model (model)
   ((mesh :initform nil)
+   (body :initform nil)
    (program :initform nil)
    (run-animation :initform nil)
    (rest-animation :initform nil)
@@ -51,7 +86,7 @@
 
 
 (defmethod initialization-flow ((this dude-model) &key)
-  (with-slots (mesh animation skeleton program
+  (with-slots (mesh animation skeleton program body
                     strafe-animation run-animation rest-animation)
       this
     (>> (resource-flow "mesh.Dude" "Stickman"
@@ -66,7 +101,14 @@
                 run-animation run
                 rest-animation rest
                 program p))
+        (-> ((physics)) ()
+          (setf body (make-instance 'dude-body)))
         (call-next-method))))
+
+
+(defmethod discard-node ((this dude-model))
+  (with-slots (body) this
+    (dispose body)))
 
 
 (defmethod model-graph-assembly-flow ((this dude-model))
@@ -75,3 +117,19 @@
      ((animation-node :initial-animation rest-animation :name :dude-animation)
       ((animated-skeleton-node :root-bone skeleton)
        ((dude-mesh :mesh mesh :program program :color color)))))))
+
+
+(defmethod scene-pass ((this dude-model) (pass simulation-pass) input)
+  (with-slots (body) this
+    #++(let* ((pos (mult *model-matrix* (vec4 0.0 0.0 0.0 1.0)))
+           (w (w pos)))
+      (flet ((w/ (v)
+               (/ v w)))
+        (setf (position-of body) (vec3 (w/ (x pos))
+                                       (w/ (y pos))
+                                       (w/ (z pos))))))
+    (call-next-method)))
+
+
+(defmethod scene-pass ((this dude-model) (pass rendering-pass) input)
+  (call-next-method))

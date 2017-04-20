@@ -10,6 +10,6 @@
   (with-slots (player front-gaze) this
     (let* ((pos (position-of player))
            (rotation (rotation-of player)))
-      (setf (transform-of this) (mult (euler-angles->mat4 (vec3 (- (x rotation)) (y rotation) 0.0))
-                                      (translation-mat4 (- (x pos)) -10.0 (- (y pos)))))))
+      (setf (transform-of this) (mult (euler-angles->mat4 (vec3 (- (x rotation)) (- (y rotation)) 0.0))
+                                      (translation-mat4 (- (x pos)) -13.0 (y pos))))))
   (call-next-method))
