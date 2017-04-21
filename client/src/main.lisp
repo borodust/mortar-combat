@@ -10,6 +10,11 @@
 (defclass mortar-combat (enableable generic-system dispatcher)
   ((scene :initform nil :reader scene-of)
    (task-queue :initform nil)
+
+   (server :initform nil)
+   (identity :initform nil)
+   (relay :initform nil)
+
    (keymap :initform nil)
    (player :initform nil))
   (:default-initargs :depends-on '(graphics-system
@@ -46,6 +51,39 @@
              (-> ((mortar-combat)) (ball)
                (let ((group (find-node (root-of scene) :ball-group)))
                  (adopt group ball)))))))
+
+
+(defun connect ()
+  (with-slots (server relay) (mortar-combat)
+    (unless (or server relay)
+      (setf server (connect-to-server "127.0.0.1" 8778)
+            relay (connect-to-server "127.0.0.1" 8222)))))
+
+
+(defun register-as (name)
+  (with-slots (server relay identity) (mortar-combat)
+    (run (>> (identify server name)
+             (->> (id)
+               (setf identity id)
+               (register-game-stream relay (server-identity-id id)))))))
+
+
+(defun create-combat-arena (name)
+  (with-slots (server) (mortar-combat)
+    (run (create-arena server name))))
+
+
+(defun join-combat-arena (name)
+  (with-slots (server) (mortar-combat)
+    (run (join-arena server name))))
+
+
+(defun ping-game-server ()
+  (with-slots (relay) (mortar-combat)
+    (let ((start (real-time-seconds)))
+      (run (>> (ping-peer relay)
+               (instantly ()
+                 (log:info "Ping: ~Fs" (- (real-time-seconds) start))))))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
