@@ -1,18 +1,24 @@
 (in-package :mortar-combat)
 
 
-(defclass floor-geom (collidable plane-geom) ())
+(defclass wall-geom (collidable plane-geom) ())
 (defclass room-floor (disposable)
-  (geom))
+  (walls))
 
 
 (defmethod initialize-instance :after ((this room-floor) &key)
-  (with-slots (geom) this
-    (setf geom (make-instance 'floor-geom :normal (vec3 0.0 1.0 0.0)))))
+  (with-slots (walls) this
+    (setf walls (list (make-instance 'wall-geom :normal (vec3 0.0 1.0 0.0))
+
+                      (make-instance 'wall-geom :normal (vec3 0.0 0.0 -1.0) :offset -100.0)
+                      (make-instance 'wall-geom :normal (vec3 -1.0 0.0 0.0) :offset -100.0)
+                      (make-instance 'wall-geom :normal (vec3 0.0 0.0 1.0) :offset -100.0)
+                      (make-instance 'wall-geom :normal (vec3 1.0 0.0 0.0) :offset -100.0)))))
 
 
-(define-destructor room-floor (geom)
-  (dispose geom))
+(define-destructor room-floor (walls)
+  (dolist (geom walls)
+    (dispose geom)))
 
 
 
@@ -21,25 +27,18 @@
 ;;;
 (defclass room-mesh (mesh-node)
   ((light :initform (make-directional-light-source
-                     (vec3 -0.57735026 -0.57735026 -0.57735026)
+                     (vec3 -0.21821788 -0.8728715 0.43643576)
                      (vec4 0.2 0.2 0.2 1.0)
                      (vec4 0.8 0.8 0.8 1.0)
                      "dLight"))
    (color :initform (vec3 0.9 0.9 0.9))
+   (mesh-asset :initarg :mesh)
    (program :initarg :program)))
 
 
 (defmethod make-node-mesh ((this room-mesh))
-  (with-disposable ((vbuf (make-array-buffer #2a((50.0 0.0 50.0)
-                                                 (50.0 0.0 -50.0)
-                                                 (-50.0 0.0 50.0)
-                                                 (-50.0 0.0 -50.0))))
-                    (nbuf (make-array-buffer #2a((0.0 1.0 0.0) (0.0 1.0 0.0)
-                                                 (0.0 1.0 0.0) (0.0 1.0 0.0)))))
-    (let ((mesh (make-mesh 4 :triangle-strip)))
-      (attach-array-buffer vbuf mesh 0)
-      (attach-array-buffer nbuf mesh 1)
-      mesh)))
+  (with-slots (mesh-asset) this
+    (mesh-asset-mesh mesh-asset)))
 
 
 (defmethod scene-pass ((this room-mesh) (pass rendering-pass) input)
@@ -62,10 +61,11 @@
 
 
 (defmethod initialization-flow ((this room-model) &key)
-  (with-slots (program floor) this
-    (>> (resource-flow (shading-program-resource-name "passthru-program"))
-        (instantly (p)
-          (setf program p))
+  (with-slots (program floor mesh) this
+    (>> (resource-flow "mesh.Room" (shading-program-resource-name "passthru-program"))
+        (instantly (m p)
+          (setf program p
+                mesh m))
         (-> ((physics)) ()
           (setf floor (make-instance 'room-floor)))
         (call-next-method))))
@@ -77,6 +77,6 @@
 
 
 (defmethod model-graph-assembly-flow ((this room-model))
-  (with-slots (program) this
+  (with-slots (program mesh) this
     (scenegraph
-     ((room-mesh :program program)))))
+     ((room-mesh :program program :mesh mesh)))))

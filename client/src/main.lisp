@@ -2,7 +2,7 @@
 
 
 (define-constant +framestep+ 0.016)
-(define-constant +player-speed+ 15.0)
+(define-constant +player-speed+ 20.0)
 (defvar *main-latch* (mt:make-latch))
 
 
