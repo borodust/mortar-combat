@@ -6,7 +6,7 @@
 
 (defclass player ()
   ((position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
-   (rotation :initform (vec2) :reader rotation-of)
+   (rotation :initform (vec2) :accessor rotation-of)
 
    (updated-at :initform (real-time-seconds))
    (velocity :initform (vec2 0.0 0.0))))
@@ -25,6 +25,12 @@
   (with-slots (position) this
     (flush-position this)
     position))
+
+
+(defmethod (setf position-of) ((value vec2) (this player))
+  (with-slots (position updated-at) this
+    (setf position value
+          updated-at (real-time-seconds))))
 
 
 (defun gaze-of (player)

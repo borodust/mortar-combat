@@ -1,29 +1,67 @@
 (in-package :mortar-combat)
 
 
-(define-constant +framestep+ 0.016)
+(define-constant +framestep+ 0.017)
 (define-constant +player-speed+ 20.0)
 (defvar *main-latch* (mt:make-latch))
-
 
 
 (defclass mortar-combat (enableable generic-system dispatcher)
   ((scene :initform nil :reader scene-of)
    (task-queue :initform nil)
 
-   (server :initform nil)
+   (remote-server :initform nil)
+   (game-client :initform nil)
+   (game-server :initform nil)
    (identity :initform nil)
-   (relay :initform nil)
 
    (keymap :initform nil)
    (player :initform nil))
-  (:default-initargs :depends-on '(graphics-system
+  (:default-initargs :depends-on '(event-system
+                                   graphics-system
                                    physics-system
                                    audio-system)))
 
 
 (definline mortar-combat ()
   (engine-system 'mortar-combat))
+
+
+(defun connect (name)
+  (with-slots (remote-server identity) (mortar-combat)
+    (unless remote-server
+      (let ((server (make-instance 'connector :host "127.0.0.1" :port 8778)))
+        (setf remote-server server)
+        (run (>> (identify server name)
+                 (instantly (id)
+                   (setf identity id))))))))
+
+
+(defun create-combat-arena (name)
+  (with-slots (remote-server identity game-server) (mortar-combat)
+    (let ((server (make-game-server)))
+      (run (>> (register-game-stream server (server-identity-id identity))
+               (create-arena remote-server name)
+               (instantly ()
+                 (setf game-server server)))))))
+
+
+(defun join-combat-arena (name)
+  (with-slots (remote-server identity game-client) (mortar-combat)
+    (let ((client (make-game-client)))
+      (run (>> (register-game-stream client (server-identity-id identity))
+               (join-arena remote-server name)
+               (instantly ()
+                 (setf game-client client))))
+      (register-player client (server-identity-name identity)))))
+
+
+(defun ping-game-server ()
+  (with-slots (game-client) (mortar-combat)
+    (let ((start (real-time-seconds)))
+      (run (>> (ping-peer game-client)
+               (instantly ()
+                 (log:info "Ping: ~Fs" (- (real-time-seconds) start))))))))
 
 
 (defun scenegraph-flow (player)
@@ -33,9 +71,7 @@
      ((player-camera :player player)
       (room-model)
       ((scene-node :name :ball-group))
-      ((transform-node :translation (vec3 4.0 0.0 0.0))
-       ((dude-model :color (vec3 0.9 0.4 0.4))
-        (mortar-model))))))))
+      ((scene-node :name :dude-group)))))))
 
 
 (defmethod dispatch ((this mortar-combat) (task function) invariant &key)
@@ -53,43 +89,19 @@
                  (adopt group ball)))))))
 
 
-(defun connect ()
-  (with-slots (server relay) (mortar-combat)
-    (unless (or server relay)
-      (setf server (connect-to-server "127.0.0.1" 8778)
-            relay (connect-to-server "127.0.0.1" 8222)))))
-
-
-(defun register-as (name)
-  (with-slots (server relay identity) (mortar-combat)
-    (run (>> (identify server name)
-             (->> (id)
-               (setf identity id)
-               (register-game-stream relay (server-identity-id id)))))))
-
-
-(defun create-combat-arena (name)
-  (with-slots (server) (mortar-combat)
-    (run (create-arena server name))))
-
-
-(defun join-combat-arena (name)
-  (with-slots (server) (mortar-combat)
-    (run (join-arena server name))))
-
-
-(defun ping-game-server ()
-  (with-slots (relay) (mortar-combat)
-    (let ((start (real-time-seconds)))
-      (run (>> (ping-peer relay)
-               (instantly ()
-                 (log:info "Ping: ~Fs" (- (real-time-seconds) start))))))))
+(defun send-client-data (this)
+  (with-slots (game-client identity player) this
+    (when game-client
+      (send-player-info game-client
+                        (server-identity-name identity)
+                        player))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
-  (with-slots (scene player keymap task-queue) this
+  (with-slots (scene player keymap task-queue game-client identity) this
     (register-resource-loader (make-resource-loader (asset-path "font.brf")
                                                     (asset-path "dude-and-mortar.brf")))
+    (register-event-classes (events) 'player-added-event)
     (setf player (make-instance 'player)
           keymap (make-instance 'keymap)
           task-queue (make-task-queue))
@@ -146,12 +158,20 @@
              (instantly (scenegraph-root)
                (setf scene (make-scene (make-pass-chain (make-simulation-pass)
                                                         (make-rendering-pass))
-                                       scenegraph-root)))
+                                       scenegraph-root))
+               (let ((dudes (find-node (root-of scene) :dude-group)))
+                 (subscribe-body-to (player-added-event (player)) (events)
+                   (run (>> (assembly-flow 'dude-model
+                                           :player player
+                                           :color (vec3 0.9 0.4 0.4))
+                            (-> this (dude)
+                              (adopt dudes dude)))))))
              (concurrently ()
                (let (looped-flow)
                  (setf looped-flow (>> (instantly ()
                                          (let ((*system* this))
-                                           (drain task-queue)))
+                                           (drain task-queue))
+                                         (send-client-data this))
                                        (-> ((physics)) ()
                                          (observe-universe +framestep+))
                                        (scene-processing-flow scene)
@@ -170,8 +190,8 @@
 
 
 (define-event-handler on-exit viewport-hiding-event (ev)
-  (in-new-thread-waiting
-      (stop)))
+  (in-new-thread "exit-thread"
+    (stop)))
 
 
 (defun main (args)

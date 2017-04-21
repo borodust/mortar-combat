@@ -30,6 +30,7 @@
                (:file "utils")
                (:file "keymap")
                (:file "player")
+               (:file "events")
                (:file "camera")
                (:file "room")
                (:file "ball")
@@ -37,8 +38,10 @@
                (:file "dude")
                (:file "shaders/dude")
                (:file "shaders/passthru")
-               (:file "main")
-               (:file "connector")))
+               (:file "connector")
+               (:file "game-server")
+               (:file "game-client")
+               (:file "main")))
 
 
 (defsystem mortar-combat/distrib

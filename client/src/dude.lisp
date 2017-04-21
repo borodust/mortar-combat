@@ -78,6 +78,7 @@
 (defclass dude-model (model)
   ((mesh :initform nil)
    (body :initform nil)
+   (player :initarg :player)
    (program :initform nil)
    (run-animation :initform nil)
    (rest-animation :initform nil)
@@ -118,9 +119,11 @@
 (defmethod model-graph-assembly-flow ((this dude-model))
   (with-slots (skeleton mesh program color rest-animation) this
     (scenegraph
-     ((animation-node :initial-animation rest-animation :name :dude-animation)
-      ((animated-skeleton-node :root-bone skeleton)
-       ((dude-mesh :mesh mesh :program program :color color)))))))
+     (scene-node
+      ((animation-node :initial-animation rest-animation :name :dude-animation)
+       ((animated-skeleton-node :root-bone skeleton)
+        ((dude-mesh :mesh mesh :program program :color color))))
+      (mortar-model)))))
 
 
 (defmethod scene-pass ((this dude-model) (pass simulation-pass) input)
@@ -135,5 +138,11 @@
     (call-next-method))
 
 
-(defmethod scene-pass ((this dude-model) (pass rendering-pass) input)
-  (call-next-method))
+(defmethod scene-pass ((this dude-model) pass input)
+  (with-slots (player) this
+    (let* ((pos (position-of player))
+           (rot (rotation-of player))
+           (*model-matrix* (mult *model-matrix*
+                                 (translation-mat4 (x pos) 0.0 (- (y pos)))
+                                 (euler-angles->mat4 (vec3 0.0 (y rot) 0.0)))))
+      (call-next-method))))

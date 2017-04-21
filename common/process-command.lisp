@@ -13,13 +13,13 @@
 
 
 (defmethod process-command :around (command message)
-  (append (list :reply-for (getf message :message-id))
-          (handler-case
-              (call-next-method)
-            (serious-condition ()
-              '(:command :error
-                :type :unhandled-error
-                :text "Error during command execution")))))
+  (handler-case
+      (when-let ((reply (call-next-method)))
+        (nconc (list :reply-for (getf message :message-id)) reply))
+    (serious-condition ()
+      '(:command :error
+        :type :unhandled-error
+        :text "Error during command execution"))))
 
 
 (defun encode-message (message stream)

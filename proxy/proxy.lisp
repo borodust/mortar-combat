@@ -34,7 +34,7 @@
 
 (defun pour-stream (source-stream destination-stream)
   (with-slots (routing-buffer) *system*
-    (when (and source-stream destination-stream )
+    (when (and source-stream destination-stream)
       (loop with buf-len = (length routing-buffer)
          for bytes-read = (read-sequence routing-buffer source-stream)
          do (write-sequence routing-buffer destination-stream :end bytes-read)
@@ -47,8 +47,8 @@
     (let ((arena-server (server-of arena)))
       (flet ((wrap-into-stream (peer)
                ;; fixme: find a way to avoid stream instantiating
-               (make-instance 'as:async-output-stream
-                              :socket (proxy-connection-of peer))))
+               (when-let ((socket (proxy-connection-of peer)))
+                 (make-instance 'as:async-output-stream :socket socket))))
         (if (eq arena-server *peer*)
             (loop for client in (clients-of arena)
                do (pour-stream stream (wrap-into-stream client)))

@@ -3,7 +3,8 @@
 
 (define-constant +supported-server-version+ 1)
 
-(declaim (special *message*))
+(declaim (special *message*
+                  *connector*))
 
 (defstruct (server-identity
              (:constructor make-server-identity (id name)))
@@ -17,19 +18,23 @@
 
 (defclass connector (lockable disposable dispatcher)
   ((enabled-p :initform t)
-   (connection :initarg :connection :reader connection-of)
+   (connection :initform nil :reader connection-of)
    (message-counter :initform 0)
    (message-table :initform (make-hash-table :test 'eql))))
 
 
-(defmethod initialize-instance :after ((this connector) &key)
+(defmethod initialize-instance :after ((this connector) &key host port)
   (with-slots (connection message-table enabled-p) this
+    (setf connection  (usocket:socket-connect host port
+                                              :element-type '(unsigned-byte 8)
+                                              :timeout 30))
     (in-new-thread "connector-thread"
       (loop while enabled-p
          do (log-errors
               (usocket:wait-for-input connection)
               (let* ((stream (connection-stream-of this))
-                     (message (decode-message stream)))
+                     (message (decode-message stream))
+                     (*connector* this))
                 (if-let ((reply-id (getf message :reply-for)))
                   (with-instance-lock-held (this)
                     (if-let ((handler (gethash reply-id message-table)))
@@ -37,17 +42,10 @@
                         (remhash reply-id message-table)
                         (funcall handler message))
                       (log:error "Handler not found for message with id ~A" reply-id)))
-                  (progn
-                    (encode-message (process-command (getf message :command) message) stream)
+                  (when-let ((reply (process-command (getf message :command) message)))
+                    (encode-message reply stream)
                     (force-output stream)))))
          finally (usocket:socket-close connection)))))
-
-
-(defun connect-to-server (host port)
-  (make-instance 'connector
-                 :connection (usocket:socket-connect host port
-                                                     :element-type '(unsigned-byte 8)
-                                                     :timeout 30)))
 
 
 (defun disconnect-from-server (connector)
@@ -70,9 +68,14 @@
     (finish-output stream)))
 
 
-(defmacro with-response (command-name (&rest properties) response &body body)
-  `(destructuring-bind (&key ,@properties &allow-other-keys) ,response
-     (check-response ,response ,command-name)
+(defmacro with-message ((&rest properties) message &body body)
+  `(destructuring-bind (&key ,@properties &allow-other-keys) ,message
+     ,@body))
+
+
+(defmacro with-response ((&rest properties) command-name &body body)
+  `(with-message (,@properties) *message*
+     (check-response *message* ,command-name)
      ,@body))
 
 
@@ -84,46 +87,47 @@
         (flet ((response-callback (message)
                  (let ((*message* message))
                    (funcall task))))
-          (setf (gethash next-id message-table) #'response-callback)
+          (unless (getf keys :no-reply)
+            (setf (gethash next-id message-table) #'response-callback))
           (apply #'send-command this :message-id next-id keys))))))
 
 
 (defun server-version (connector)
   (-> (connector :command :version) ()
-    (with-response :version (version) *message*
+    (with-response (version) :version
       version)))
 
 
 (defun identify (connector name)
   (-> (connector :command :identify :name name) ()
-    (with-response :identified (id name) *message*
+    (with-response (id name) :identified
       (make-server-identity id name))))
 
 
 (defun create-arena (connector name)
   (-> (connector :command :create-arena :name name) ()
-    (with-response :ok () *message*)))
+    (with-response () :ok)))
 
 
 (defun join-arena (connector name)
   (-> (connector :command :join-arena :name name) ()
-    (with-response :ok () *message*)))
+    (with-response () :ok)))
 
 
 (defun get-arena-list (connector)
   (-> (connector :command :get-arena-list) ()
-    (with-response :arena-list (list) *message*
+    (with-response (list) :arena-list
       list)))
 
 
 (defun register-game-stream (connector peer-id)
   (-> (connector :command :register-game-stream :peer-id peer-id) ()
-    (with-response :ok () *message*)))
+    (with-response () :ok)))
 
 
 (defun ping-peer (connector)
   (-> (connector :command :ping) ()
-    (with-response :ok () *message*)))
+    (with-response () :ok)))
 
 
 (defmethod process-command ((command (eql :ping)) message)
