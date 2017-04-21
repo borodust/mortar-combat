@@ -1,40 +1,44 @@
 (in-package :mortar-combat)
 
 
+(defvar *dude-bounds-initial-position* (vec4 0.0 7.5 0.0 1.0))
+(defvar *dude-bounds-initial-rotation* (euler-angles->mat4 (vec4 (/ pi 2) 0.0 0.0)))
+
 (defclass dude-bounds (collidable cylinder-geom) ())
 
 
 (defclass dude-body (disposable)
-  (body bounds))
+  (bounds))
 
 
 (defmethod initialize-instance :after ((this dude-body) &key)
-  (with-slots (body bounds) this
-    (setf body (make-rigid-body)
-          bounds (make-instance 'dude-bounds
+  (with-slots (bounds) this
+    (setf bounds (make-instance 'dude-bounds
                                 :radius 2.0
                                 :length 13.0))
-    #++(bind-geom bounds body)))
+    (setf (position-of bounds) (vec3 (x *dude-bounds-initial-position*)
+                                     (y *dude-bounds-initial-position*)
+                                     (z *dude-bounds-initial-position*))
+          (rotation-of bounds) (mat4->mat3 *dude-bounds-initial-rotation*))))
 
 
-(define-destructor dude-body (body bounds)
-  (dispose bounds)
-  (dispose body))
+(define-destructor dude-body (bounds)
+  (dispose bounds))
 
 
-(defmethod (setf position-of) (value (this dude-body))
-  (with-slots (body) this
-    (setf (position-of body) value)))
+(defmethod (setf position-of) ((value vec3) (this dude-body))
+  (with-slots (bounds) this
+    (setf (position-of bounds) value)))
 
 
 (defmethod transform-of ((this dude-body))
-  (with-slots (body) this
-    (transform-of body)))
+  (with-slots (bounds) this
+    (transform-of bounds)))
 
 
 (defmethod rotation-of ((this dude-body))
-  (with-slots (body) this
-    (rotation-of body)))
+  (with-slots (bounds) this
+    (rotation-of bounds)))
 
 ;;;
 ;;;
@@ -121,14 +125,14 @@
 
 (defmethod scene-pass ((this dude-model) (pass simulation-pass) input)
   (with-slots (body) this
-    #++(let* ((pos (mult *model-matrix* (vec4 0.0 0.0 0.0 1.0)))
+    (let* ((pos (mult *model-matrix* *dude-bounds-initial-position*))
            (w (w pos)))
       (flet ((w/ (v)
                (/ v w)))
         (setf (position-of body) (vec3 (w/ (x pos))
                                        (w/ (y pos))
-                                       (w/ (z pos))))))
-    (call-next-method)))
+                                       (w/ (z pos)))))))
+    (call-next-method))
 
 
 (defmethod scene-pass ((this dude-model) (pass rendering-pass) input)

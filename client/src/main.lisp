@@ -28,8 +28,9 @@
      ((player-camera :player player)
       (room-model)
       ((scene-node :name :ball-group))
-      ((dude-model :color (vec3 0.9 0.4 0.4))
-       (mortar-model)))))))
+      ((transform-node :translation (vec3 4.0 0.0 0.0))
+       ((dude-model :color (vec3 0.9 0.4 0.4))
+        (mortar-model))))))))
 
 
 (defmethod dispatch ((this mortar-combat) (task function) invariant &key)
