@@ -3,7 +3,8 @@
 
 (defclass game-server (connector)
   ((players :initform (make-hash-table :test 'equal)))
-  (:default-initargs :host "localhost" :port 8222))
+  (:default-initargs :host (property :server-address "127.0.0.1")
+    :port (property :proxy-server-port 8222)))
 
 
 (defun make-game-server ()

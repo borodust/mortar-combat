@@ -30,7 +30,9 @@
 (defun connect (name)
   (with-slots (remote-server identity) (mortar-combat)
     (unless remote-server
-      (let ((server (make-instance 'connector :host "127.0.0.1" :port 8778)))
+      (let ((server (make-instance 'connector
+                                   :host (property :server-address "127.0.0.1")
+                                   :port (property :info-server-port 8778))))
         (setf remote-server server)
         (run (>> (identify server name)
                  (instantly (id)

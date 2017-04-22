@@ -3,8 +3,8 @@
 (declaim (special *peer*))
 (declaim (special *connection*))
 
-(defvar *main-latch* (mt:make-latch))
 
+(defvar *main-latch* (mt:make-latch))
 
 (define-constant +server-version+ 1)
 (define-constant +routing-buffer-size+ (* 64 1024))
@@ -97,8 +97,8 @@
                               :stream t)))
       (in-new-thread "connector-thread"
         (as:with-event-loop ()
-          (setf proxy-server (make-server "127.0.0.1" 8222)
-                info-server (make-server "127.0.0.1" 8778)))))))
+          (setf proxy-server (make-server "0.0.0.0" 8222)
+                info-server (make-server "0.0.0.0" 8778)))))))
 
 
 (defmethod make-system-context ((this mortar-combat-proxy))
