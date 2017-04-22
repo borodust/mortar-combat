@@ -1,7 +1,12 @@
 (in-package :mortar-combat)
 
+(define-constant +player-speed+ 20.0)
 
 (defvar *forward-gaze* (vec3 0.0 0.0 -1.0))
+
+
+(defgeneric position-of (player))
+(defgeneric rotation-of (player))
 
 
 (defclass player ()
@@ -25,12 +30,6 @@
   (with-slots (position) this
     (flush-position this)
     position))
-
-
-(defmethod (setf position-of) ((value vec2) (this player))
-  (with-slots (position updated-at) this
-    (setf position value
-          updated-at (real-time-seconds))))
 
 
 (defun gaze-of (player)

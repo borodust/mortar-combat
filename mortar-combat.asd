@@ -30,6 +30,7 @@
                (:file "utils")
                (:file "keymap")
                (:file "player")
+               (:file "proxy")
                (:file "events")
                (:file "camera")
                (:file "room")

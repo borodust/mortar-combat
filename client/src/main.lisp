@@ -2,7 +2,6 @@
 
 
 (define-constant +framestep+ 0.017)
-(define-constant +player-speed+ 20.0)
 (defvar *main-latch* (mt:make-latch))
 
 
@@ -187,7 +186,10 @@
   (with-slots (remote-server game-client game-server) this
     (dolist (server (list remote-server game-client game-server))
       (when server
-        (disconnect-from-server server)))))
+        (disconnect-from-server server)))
+    (setf remote-server nil
+          game-client nil
+          game-server nil)))
 
 
 (defun start (configuration-path)

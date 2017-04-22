@@ -21,6 +21,7 @@
         (rot (rotation-of player)))
     (run (-> (client :command :player-info
                      :name name
+                     :timestamp (real-time-seconds)
                      :position (list (x pos) (y pos))
                      :rotation (list (x rot) (y rot)))
              ()))))
