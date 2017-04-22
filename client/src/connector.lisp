@@ -31,26 +31,32 @@
     (in-new-thread "connector-thread"
       (loop while enabled-p
          do (log-errors
-              (usocket:wait-for-input connection)
-              (let* ((stream (connection-stream-of this))
-                     (message (decode-message stream))
-                     (*connector* this))
-                (if-let ((reply-id (getf message :reply-for)))
-                  (with-instance-lock-held (this)
-                    (if-let ((handler (gethash reply-id message-table)))
-                      (progn
-                        (remhash reply-id message-table)
-                        (funcall handler message))
-                      (log:error "Handler not found for message with id ~A" reply-id)))
-                  (when-let ((reply (process-command (getf message :command) message)))
-                    (encode-message reply stream)
-                    (force-output stream)))))
+              (handler-case
+                  (progn
+                    (usocket:wait-for-input connection)
+                    (let* ((stream (connection-stream-of this))
+                           (message (decode-message stream))
+                           (*connector* this))
+                      (if-let ((reply-id (getf message :reply-for)))
+                        (with-instance-lock-held (this)
+                          (if-let ((handler (gethash reply-id message-table)))
+                            (progn
+                              (remhash reply-id message-table)
+                              (funcall handler message))
+                            (log:error "Handler not found for message with id ~A" reply-id)))
+                        (when-let ((reply (process-command (getf message :command) message)))
+                          (encode-message reply stream)
+                          (force-output stream)))))
+                (end-of-file ()
+                  (setf enabled-p nil)
+                  (log:debug "Disconnected from server"))))
          finally (usocket:socket-close connection)))))
 
 
 (defun disconnect-from-server (connector)
-  (with-slots (enabled-p) connector
-    (setf enabled-p nil)))
+  (with-slots (enabled-p connection) connector
+    (when enabled-p
+      (usocket:socket-close connection))))
 
 
 (defun check-response (message expected-command)
@@ -81,15 +87,19 @@
 
 (defmethod dispatch ((this connector) (task function) invariant &rest keys
                      &key &allow-other-keys)
-  (with-slots (message-table message-counter) this
+  (with-slots (enabled-p message-table message-counter) this
     (with-instance-lock-held (this)
-      (let ((next-id (incf message-counter)))
-        (flet ((response-callback (message)
-                 (let ((*message* message))
-                   (funcall task))))
-          (unless (getf keys :no-reply)
-            (setf (gethash next-id message-table) #'response-callback))
-          (apply #'send-command this :message-id next-id keys))))))
+      (flet ((response-callback (message)
+               (let ((*message* message))
+                 (funcall task))))
+        (if enabled-p
+            (let ((next-id (incf message-counter)))
+              (unless (getf keys :no-reply)
+                (setf (gethash next-id message-table) #'response-callback))
+              (apply #'send-command this :message-id next-id keys))
+            (response-callback (list :command :error
+                                     :type :disconnected
+                                     :text "Disconnected from server")))))))
 
 
 (defun server-version (connector)

@@ -181,6 +181,13 @@
                  (run looped-flow)))))))
 
 
+(defmethod discard-system ((this mortar-combat))
+  (with-slots (remote-server game-client game-server) this
+    (dolist (server (list remote-server game-client game-server))
+      (when server
+        (disconnect-from-server server)))))
+
+
 (defun start (configuration-path)
   (startup configuration-path (uiop:pathname-directory-pathname configuration-path)))
 

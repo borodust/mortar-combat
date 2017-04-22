@@ -15,7 +15,6 @@
   ((proxy-server :initform nil)
    (peer-registry :initform (make-instance 'peer-registry) :reader peer-registry-of)
    (arena-registry :initform (make-instance 'arena-registry) :reader arena-registry-of)
-   (arenas :initform (make-hash-table :test #'equal) :reader arena-list-of)
    (routing-buffer :initform (make-array +routing-buffer-size+
                                          :element-type '(unsigned-byte 8)))
    (info-server :initform nil)))
@@ -55,13 +54,30 @@
             (pour-stream stream (wrap-into-stream arena-server)))))))
 
 
+(defgeneric process-condition (condition)
+  (:method (condition)
+    (log:error "Unhandled event ~A: ~A" (type-of condition) condition)))
+
+
+(defun disconnect-peer (connection)
+  (let* ((proxy (engine-system 'mortar-combat-proxy))
+         (peer-reg (peer-registry-of proxy))
+         (arena-reg (arena-registry-of proxy)))
+    (when-let ((peer (find-peer-by-property peer-reg connection)))
+      (remove-arena-by-server arena-reg peer)
+      (remove-peer peer-reg peer)
+      (log:debug "Peer \"~A\" disconnected" (name-of peer)))))
+
+
+(defmethod process-condition ((condi as:socket-eof))
+  (disconnect-peer (as:socket condi)))
+
+
 (defmethod initialize-system :after ((this mortar-combat-proxy))
   (with-slots (proxy-server info-server peer-registry) this
-    (labels ((process-condition (e)
-               (log:error "Server event: ~A" e))
-             (on-accept (socket)
-               (declare (ignorable socket))
-               #++ (as:set-socket-timeouts socket +client-socket-timeout+ nil))
+    (labels ((on-accept (socket)
+               (when-let ((connection-timeout (property :connection-timeout)))
+                 (as:set-socket-timeouts socket connection-timeout nil)))
              (process-input (socket stream)
                (let* ((*system* this)
                       (*connection* socket)
@@ -91,13 +107,9 @@
     (as:close-tcp-server info-server)))
 
 
-(define-system-function find-arena mortar-combat-proxy (name)
-  (with-slots (arenas) *system*
-    (gethash name arenas)))
-
-
 (defun start ()
-  (startup '(:engine (:systems (mortar-combat-proxy)))))
+  (startup '(:engine (:systems (mortar-combat-proxy)
+                      :log-level :debug))))
 
 
 (defun stop ()

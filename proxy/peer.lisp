@@ -44,6 +44,14 @@
     (gethash id peer-by-id)))
 
 
+(defun remove-peer (registry peer)
+  (with-slots (peer-table peer-by-id) registry
+    (remhash (info-connection-of peer) peer-table)
+    (remhash (proxy-connection-of peer) peer-table)
+    (remhash (name-of peer) peer-table)
+    (remhash (id-of peer) peer-by-id)))
+
+
 (defun update-peer-proxy-connection (registry peer proxy-connection)
   (with-slots (peer-table) registry
     (remhash (proxy-connection-of peer) peer-table)

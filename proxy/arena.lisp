@@ -2,7 +2,7 @@
 
 
 (defclass arena ()
-  ((name :initarg :name :reader :name-of)
+  ((name :initarg :name :reader name-of)
    (server :initarg :server :reader server-of)
    (clients :initform nil :reader clients-of)))
 
@@ -36,6 +36,16 @@
     (push client clients))
   (with-slots (arena-table) registry
     (setf (gethash client arena-table) arena)))
+
+
+(defun remove-arena-by-server (registry server)
+  (with-slots (arena-table arena-by-name) registry
+    (when-let ((arena (find-arena-by-peer registry server)))
+      (when (eq (server-of arena) server)
+        (dolist (client (clients-of arena))
+          (remhash client arena-table))
+        (remhash (server-of arena) arena-table)
+        (remhash arena-by-name (name-of arena))))))
 
 
 (defun find-arena-by-peer (registry peer)
