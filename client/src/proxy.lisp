@@ -2,8 +2,9 @@
 
 
 (defclass proxy ()
-  ((position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
-   (rotation :initform (vec2) :accessor rotation-of)
+  ((name :initarg :name :initform (error ":name missing") :reader name-of)
+   (position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
+   (rotation :initform (vec2) :reader rotation-of)
    (updated-at :initform (real-time-seconds))
 
    (next-position :initform (vec2))

@@ -21,7 +21,8 @@
   (handler-case
       (when-let ((reply (call-next-method)))
         (nconc (list :reply-for (getf message :message-id)) reply))
-    (serious-condition ()
+    (serious-condition (e)
+      (log:error "Unhandled error during command processing:~%~A: ~A" (type-of e) e)
       '(:command :error
         :type :unhandled-error
         :text "Error during command execution"))))

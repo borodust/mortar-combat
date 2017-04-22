@@ -32,6 +32,7 @@
                (:file "player")
                (:file "proxy")
                (:file "events")
+               (:file "arena")
                (:file "camera")
                (:file "room")
                (:file "ball")

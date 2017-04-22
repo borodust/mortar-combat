@@ -2,29 +2,43 @@
 
 
 (defclass game-server (connector)
-  ((players :initform (make-hash-table :test 'equal)))
+  ((arena :initarg :arena))
   (:default-initargs :host (property :server-address "127.0.0.1")
     :port (property :proxy-server-port 8222)))
 
 
-(defun make-game-server ()
-  (make-instance 'game-server))
+(defun make-game-server (arena)
+  (make-instance 'game-server :arena arena))
 
 
 (defmethod process-command ((command (eql :register-player)) message)
-  (with-slots (players) *connector*
+  (with-slots (arena) *connector*
     (with-message (name) message
-      (with-instance-lock-held (*connector*)
-        (let ((player (make-instance 'proxy)))
-          (setf (gethash name players) player)
-          (post (make-player-added-event player) (events))))))
+      (let ((player (make-instance 'proxy :name name)))
+        (add-dude arena player)
+        (post (make-player-added player) (events)))))
   nil)
 
 
 (defmethod process-command ((command (eql :player-info)) message)
-  (with-slots (players) *connector*
+  (with-slots (arena) *connector*
     (with-message (name position rotation timestamp) message
-      (with-instance-lock-held (*connector*)
-        (when-let ((player (gethash name players)))
-          (update-proxy player (sequence->vec2 position) (sequence->vec2 rotation) timestamp)))))
+      (when-let ((player (find-dude arena name)))
+        (update-proxy player (sequence->vec2 position) (sequence->vec2 rotation) timestamp))))
   nil)
+
+
+(defun broadcast-game-state (server)
+  (with-slots (arena) server
+    (flet ((player-info (p)
+             (let ((pos (position-of p))
+                   (rot (rotation-of p)))
+             (list :name (name-of p)
+                   :position (list (x pos) (y pos))
+                   :rotation (list (x rot) (y rot))))))
+      (let ((proxies (mapcar #'player-info (cons (player-of arena) (dudes-of arena)))))
+        (run (-> (server :command :game-state
+                         :no-reply t
+                         :timestamp (real-time-seconds)
+                         :state (list :player-list proxies))
+                 ()))))))

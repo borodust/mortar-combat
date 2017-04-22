@@ -15,7 +15,7 @@
    (identity :initform nil)
 
    (keymap :initform nil)
-   (player :initform nil))
+   (arena :initform nil :reader arena-of))
   (:default-initargs :depends-on '(event-system
                                    graphics-system
                                    physics-system
@@ -38,22 +38,33 @@
                    (setf identity id))))))))
 
 
+(defun update-player-camera (scene arena)
+  (let ((cam (find-node (root-of scene) :camera)))
+    (setf (player-of cam) (player-of arena))))
+
+
 (defun create-combat-arena (name)
-  (with-slots (remote-server identity game-server) (mortar-combat)
-    (let ((server (make-game-server)))
+  (with-slots (remote-server identity game-server arena scene) (mortar-combat)
+    (let* ((new-arena (make-instance 'arena :player-name (server-identity-name identity)))
+           (server (make-game-server new-arena)))
       (run (>> (register-game-stream server (server-identity-id identity))
                (create-arena remote-server name)
-               (instantly ()
-                 (setf game-server server)))))))
+               (-> ((mortar-combat)) ()
+                   (setf arena new-arena
+                         game-server server)
+                   (update-player-camera scene arena)))))))
 
 
 (defun join-combat-arena (name)
-  (with-slots (remote-server identity game-client) (mortar-combat)
-    (let ((client (make-game-client)))
+  (with-slots (remote-server identity game-client arena scene) (mortar-combat)
+    (let* ((new-arena (make-instance 'arena :player-name (server-identity-name identity)))
+           (client (make-game-client new-arena)))
       (run (>> (register-game-stream client (server-identity-id identity))
                (join-arena remote-server name)
-               (instantly ()
-                 (setf game-client client)
+               (-> ((mortar-combat)) ()
+                 (setf arena new-arena
+                       game-client client)
+                 (update-player-camera scene arena)
                  (register-player client (server-identity-name identity))))))))
 
 
@@ -65,11 +76,11 @@
                  (log:info "Ping: ~Fs" (- (real-time-seconds) start))))))))
 
 
-(defun scenegraph-flow (player)
+(defun scenegraph-flow ()
   (scenegraph
    (transform-node
     ((projection-node :aspect (/ 800 600))
-     ((player-camera :player player)
+     ((player-camera :name :camera)
       (room-model)
       ((scene-node :name :ball-group))
       ((scene-node :name :dude-group)))))))
@@ -80,41 +91,39 @@
     (push-task task task-queue)))
 
 
-(defun shoot-ball (scene player)
-  (let ((pos (position-of player)))
-    (run (>> (assembly-flow 'ball-model
-                            :position (vec3 (+ (x pos) 1.0) 10.0 (- (y pos)))
-                            :force (mult (gaze-of player) 10000))
-             (-> ((mortar-combat)) (ball)
-               (let ((group (find-node (root-of scene) :ball-group)))
-                 (adopt group ball)))))))
-
-
 (defun send-client-data (this)
-  (with-slots (game-client identity player) this
+  (with-slots (game-client identity arena) this
     (when game-client
-      (send-player-info game-client
-                        (server-identity-name identity)
-                        player))))
+      (send-player-info game-client (player-of arena)))))
+
+
+(defun broadcast-arena-state (this)
+  (with-slots (game-server) this
+    (when game-server
+      (broadcast-game-state game-server))))
 
 
 (defmethod initialize-system :after ((this mortar-combat))
-  (with-slots (scene player keymap task-queue game-client identity) this
+  (with-slots (scene keymap task-queue game-client identity) this
     (register-resource-loader (make-resource-loader (asset-path "font.brf")
                                                     (asset-path "dude-and-mortar.brf")))
-    (register-event-classes (events) 'player-added-event)
-    (setf player (make-instance 'player)
-          keymap (make-instance 'keymap)
+    (register-event-classes (events)
+                            'player-added
+                            'game-state-updated
+                            'camera-rotated
+                            'velocity-changed
+                            'trigger-pulled)
+    (setf keymap (make-instance 'keymap)
           task-queue (make-task-queue))
-
     (let ((prev-x nil)
           (prev-y nil)
-          (movement-keys))
+          (movement-keys)
+          (eve (events)))
       (labels ((rotate-camera (x y)
                  (when (and prev-x prev-y)
                    (let ((ax (/ (- y prev-y) 1000))
                          (ay (/ (- x prev-x) 1000)))
-                     (look-at player ax (- ay))))
+                     (post (make-camera-rotated ax (- ay)) eve)))
                  (setf prev-x x
                        prev-y y))
                (key-velocity (key)
@@ -124,9 +133,10 @@
                    (:a (vec2 (- +player-speed+) 0.0))
                    (:d (vec2 +player-speed+ 0.0))))
                (update-velocity ()
-                 (setf (player-velocity player) (reduce #'add movement-keys
-                                                        :key #'key-velocity
-                                                        :initial-value (vec2))))
+                 (post (make-velocity-changed (reduce #'add movement-keys
+                                                      :key #'key-velocity
+                                                      :initial-value (vec2)))
+                       eve))
                (update-buttons (button)
                  (lambda (state)
                    (case state
@@ -135,7 +145,7 @@
                    (update-velocity)))
                (shoot (state)
                  (when (eq :pressed state)
-                   (shoot-ball scene player))))
+                   (post (make-trigger-pulled) eve))))
 
         (bind-cursor keymap #'rotate-camera)
 
@@ -155,24 +165,18 @@
                (setf (gravity) (vec3 0.0 -9.81 0.0)))
              (-> ((graphics)) ()
                (gl:viewport 0 0 800 600))
-             (scenegraph-flow player)
+             (scenegraph-flow)
              (instantly (scenegraph-root)
                (setf scene (make-scene (make-pass-chain (make-simulation-pass)
                                                         (make-rendering-pass))
-                                       scenegraph-root))
-               (let ((dudes (find-node (root-of scene) :dude-group)))
-                 (subscribe-body-to (player-added-event (player)) (events)
-                   (run (>> (assembly-flow 'dude-model
-                                           :player player
-                                           :color (vec3 0.9 0.4 0.4))
-                            (-> this (dude)
-                              (adopt dudes dude)))))))
+                                       scenegraph-root)))
              (concurrently ()
                (let (looped-flow)
                  (setf looped-flow (>> (instantly ()
                                          (let ((*system* this))
                                            (drain task-queue))
-                                         (send-client-data this))
+                                         (send-client-data this)
+                                         (broadcast-arena-state this))
                                        (-> ((physics)) ()
                                          (observe-universe +framestep+))
                                        (scene-processing-flow scene)
@@ -183,13 +187,16 @@
 
 
 (defmethod discard-system ((this mortar-combat))
-  (with-slots (remote-server game-client game-server) this
+  (with-slots (remote-server game-client game-server arena) this
     (dolist (server (list remote-server game-client game-server))
       (when server
         (disconnect-from-server server)))
     (setf remote-server nil
           game-client nil
-          game-server nil)))
+          game-server nil)
+    (when arena
+      (dispose arena)
+      (setf arena nil))))
 
 
 (defun start (configuration-path)

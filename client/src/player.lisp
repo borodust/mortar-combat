@@ -7,10 +7,11 @@
 
 (defgeneric position-of (player))
 (defgeneric rotation-of (player))
+(defgeneric name-of (player))
 
-
-(defclass player ()
-  ((position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
+(defclass player (subscriber)
+  ((name :initarg :name :initform (error ":name missing") :reader name-of)
+   (position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
    (rotation :initform (vec2) :accessor rotation-of)
 
    (updated-at :initform (real-time-seconds))
@@ -38,7 +39,7 @@
     (normalize (rotate *forward-gaze* (euler-angles->quat (x rotation) (y rotation) 0.0)))))
 
 
-(defun (setf player-velocity) (vec2 player)
+(defun (setf velocity-of) (vec2 player)
   (with-slots (position velocity) player
     (flush-position player)
     (setf velocity vec2)))
@@ -48,3 +49,12 @@
   (with-slots (rotation) player
     (incf (y rotation) y-angle)
     (incf (x rotation) x-angle)))
+
+
+(defmethod initialize-instance :after ((this player) &key)
+  (flet ((update-velocity (ev)
+           (setf (velocity-of this) (velocity-from ev)))
+         (update-rotation (ev)
+           (look-at this (ax-from ev) (ay-from ev))))
+    (register-event-handler 'camera-rotated #'update-rotation)
+    (register-event-handler 'velocity-changed #'update-velocity)))
