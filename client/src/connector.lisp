@@ -74,11 +74,6 @@
     (finish-output stream)))
 
 
-(defmacro with-message ((&rest properties) message &body body)
-  `(destructuring-bind (&key ,@properties &allow-other-keys) ,message
-     ,@body))
-
-
 (defmacro with-response ((&rest properties) command-name &body body)
   `(with-message (,@properties) *message*
      (check-response *message* ,command-name)

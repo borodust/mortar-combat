@@ -6,4 +6,5 @@
   (:export +ok-reply+
            process-command
            encode-message
-           decode-message))
+           decode-message
+           with-message))

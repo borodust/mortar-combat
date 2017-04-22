@@ -52,8 +52,8 @@
       (run (>> (register-game-stream client (server-identity-id identity))
                (join-arena remote-server name)
                (instantly ()
-                 (setf game-client client))))
-      (register-player client (server-identity-name identity)))))
+                 (setf game-client client)
+                 (register-player client (server-identity-name identity))))))))
 
 
 (defun ping-game-server ()

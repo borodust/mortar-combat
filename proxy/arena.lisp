@@ -45,12 +45,22 @@
         (dolist (client (clients-of arena))
           (remhash client arena-table))
         (remhash (server-of arena) arena-table)
-        (remhash arena-by-name (name-of arena))))))
+        (remhash (name-of arena) arena-by-name)))))
 
 
 (defun find-arena-by-peer (registry peer)
   (with-slots (arena-table) registry
     (gethash peer arena-table)))
+
+
+(defun remove-peer-from-arena (registry peer)
+  (when-let ((arena (find-arena-by-peer registry peer)))
+    (if (eq peer (server-of arena))
+        (remove-arena-by-server registry peer)
+        (with-slots (clients) arena
+          (with-slots (arena-table) registry
+            (deletef clients peer)
+            (remhash peer arena-table))))))
 
 
 (defun find-arena-by-name (registry name)

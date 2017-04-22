@@ -5,6 +5,11 @@
   :test #'equal)
 
 
+(defmacro with-message ((&rest properties) message &body body)
+  `(destructuring-bind (&key ,@properties &allow-other-keys) ,message
+     ,@body))
+
+
 (defgeneric process-command (command message)
   (:method (command message)
     (list :command :error

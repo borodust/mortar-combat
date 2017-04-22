@@ -66,11 +66,15 @@
     (when-let ((peer (find-peer-by-property peer-reg connection)))
       (remove-arena-by-server arena-reg peer)
       (remove-peer peer-reg peer)
-      (log:debug "Peer \"~A\" disconnected" (name-of peer)))))
+      (log:debug "Peer '~A' disconnected" (name-of peer)))))
 
 
 (defmethod process-condition ((condi as:socket-eof))
   (disconnect-peer (as:socket condi)))
+
+
+(defmethod process-condition ((condi as:socket-reset))
+  (log:warn "Peer disconnected unexpectedly"))
 
 
 (defmethod initialize-system :after ((this mortar-combat-proxy))
