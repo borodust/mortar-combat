@@ -1,6 +1,8 @@
 (in-package :mortar-combat)
 
 
+(define-constant +animation-overlap+ 0.15)
+
 (defvar *dude-bounds-initial-position* (vec4 0.0 7.5 0.0 1.0))
 (defvar *dude-bounds-initial-rotation* (euler-angles->mat4 (vec4 (/ pi 2) 0.0 0.0)))
 
@@ -77,6 +79,7 @@
 ;;;
 (defclass dude-model (model)
   ((mesh :initform nil)
+   (movement-listener :initform nil)
    (body :initform nil)
    (player :initarg :player)
    (program :initform nil)
@@ -91,8 +94,9 @@
 
 
 (defmethod initialization-flow ((this dude-model) &key)
-  (with-slots (mesh animation skeleton program body
-                    strafe-animation run-animation rest-animation)
+  (with-slots (mesh animation skeleton program body (dude player)
+                    strafe-animation run-animation rest-animation
+                    movement-listener)
       this
     (>> (resource-flow "mesh.Dude" "Stickman"
                        "animation.Resting"
@@ -108,11 +112,28 @@
                 program p))
         (-> ((physics)) ()
           (setf body (make-instance 'dude-body)))
-        (call-next-method))))
+        (call-next-method)
+        (instantly ()
+          (let ((ani-player (find-node (model-root-of this) :dude-animation)))
+            (setf movement-listener
+                  (subscribe-body-to (movement-changed (player direction)) (events)
+                    (run (-> ((mortar-combat)) ()
+                            (when (eq dude player)
+                              (case direction
+                                (:north (play-node-animation ani-player
+                                                             run-animation
+                                                             +animation-overlap+))
+                                (:east (play-node-animation ani-player
+                                                            strafe-animation
+                                                            +animation-overlap+))
+                                (t (play-node-animation ani-player
+                                                        rest-animation
+                                                        +animation-overlap+)))))))))))))
 
 
 (defmethod discard-node ((this dude-model))
-  (with-slots (body) this
+  (with-slots (body movement-listener) this
+    (unsubscribe-from 'movement-changed movement-listener (events))
     (dispose body)))
 
 

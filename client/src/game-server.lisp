@@ -22,9 +22,13 @@
 
 (defmethod process-command ((command (eql :player-info)) message)
   (with-slots (arena) *connector*
-    (with-message (name position rotation timestamp) message
+    (with-message (name position rotation timestamp movement) message
       (when-let ((player (find-dude arena name)))
-        (update-proxy player (sequence->vec2 position) (sequence->vec2 rotation) timestamp))))
+        (update-proxy player
+                      (sequence->vec2 position)
+                      (sequence->vec2 rotation)
+                      timestamp
+                      movement))))
   nil)
 
 
@@ -35,7 +39,8 @@
                    (rot (rotation-of p)))
              (list :name (name-of p)
                    :position (list (x pos) (y pos))
-                   :rotation (list (x rot) (y rot))))))
+                   :rotation (list (x rot) (y rot))
+                   :movement (movement-of p)))))
       (let ((proxies (mapcar #'player-info (cons (player-of arena) (dudes-of arena)))))
         (run (-> (server :command :game-state
                          :no-reply t

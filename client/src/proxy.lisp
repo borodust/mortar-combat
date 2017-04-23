@@ -3,7 +3,7 @@
 
 (defclass proxy ()
   ((name :initarg :name :initform (error ":name missing") :reader name-of)
-   (movement :initform nil)
+   (movement :initform nil :reader movement-of)
    (position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
    (rotation :initform (vec2) :reader rotation-of)
    (updated-at :initform (real-time-seconds))
@@ -32,10 +32,15 @@
     (lerp rotation next-rotation (proxy-lerp-factor this))))
 
 
-(defun update-proxy (proxy pos rot timestamp)
-  (with-slots (next-position next-at position updated-at
-                             correction rotation next-rotation)
+(defun update-proxy (proxy pos rot timestamp movement)
+  (with-slots (next-position
+               next-at position updated-at
+               correction rotation next-rotation
+               (this-movement movement))
       proxy
+    (unless (eq this-movement movement)
+      (setf this-movement movement)
+      (post (make-movement-changed proxy movement) (events)))
     (setf correction (- (real-time-seconds) timestamp)
 
           position (position-of proxy)

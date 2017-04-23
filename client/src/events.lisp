@@ -38,7 +38,7 @@
 
 
 (defevent movement-changed ()
-  (direction))
+  (player direction))
 
 
 (defevent trigger-pulled () ())

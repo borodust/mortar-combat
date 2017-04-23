@@ -104,7 +104,7 @@
 
 
 (defmethod initialize-system :after ((this mortar-combat))
-  (with-slots (scene keymap task-queue game-client identity) this
+  (with-slots (scene keymap task-queue game-client identity arena) this
     (register-resource-loader (make-resource-loader (asset-path "font.brf")
                                                     (asset-path "dude-and-mortar.brf")))
     (register-event-classes (events)
@@ -144,7 +144,8 @@
                                                  ('(:w :d) :north-east)
                                                  ('(:s :a) :south-west)
                                                  ('(:s :d) :south-east))))))
-                     (post (make-movement-changed direction) eve))))
+                     (when arena
+                       (post (make-movement-changed (player-of arena) direction) eve)))))
                (update-buttons (button)
                  (lambda (state)
                    (case state

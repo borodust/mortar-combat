@@ -69,7 +69,8 @@
 
 (defmethod initialize-instance :after ((this player) &key)
   (flet ((update-movement (ev)
-           (setf (movement-of this) (direction-from ev)))
+           (when (eq (player-from ev) this)
+             (setf (movement-of this) (direction-from ev))))
          (update-rotation (ev)
            (look-at this (ax-from ev) (ay-from ev))))
     (register-event-handler 'camera-rotated #'update-rotation)

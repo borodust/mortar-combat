@@ -24,6 +24,7 @@
                      :no-reply t
                      :name (name-of player)
                      :timestamp (real-time-seconds)
+                     :movement (movement-of player)
                      :position (list (x pos) (y pos))
                      :rotation (list (x rot) (y rot)))
              ()))))

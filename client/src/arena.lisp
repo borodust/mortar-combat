@@ -39,7 +39,8 @@
               (update-proxy dude
                             (sequence->vec2 (getf dude-state :position))
                             (sequence->vec2(getf dude-state :rotation))
-                            timestamp))))))))
+                            timestamp
+                            (getf dude-state :movement)))))))))
 
 
 (defun shoot-ball (player)
