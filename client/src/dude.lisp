@@ -114,21 +114,54 @@
           (setf body (make-instance 'dude-body)))
         (call-next-method)
         (instantly ()
-          (let ((ani-player (find-node (model-root-of this) :dude-animation)))
+          (let* ((ani-player (find-node (model-root-of this) :dude-animation))
+                 (forward (make-looped-animation run-animation))
+                 (backward (make-looped-animation
+                            (make-inverted-animation run-animation)))
+                 (right (make-looped-animation strafe-animation))
+                 (left (make-looped-animation
+                        (make-inverted-animation strafe-animation)))
+                 (forward-left (make-blended-animation forward left))
+                 (forward-right (make-blended-animation forward right))
+                 (backward-right (make-blended-animation backward right))
+                 (backward-left (make-blended-animation backward left)))
             (setf movement-listener
                   (subscribe-body-to (movement-changed (player direction)) (events)
                     (run (-> ((mortar-combat)) ()
-                            (when (eq dude player)
-                              (case direction
-                                (:north (play-node-animation ani-player
-                                                             run-animation
-                                                             +animation-overlap+))
-                                (:east (play-node-animation ani-player
-                                                            strafe-animation
-                                                            +animation-overlap+))
-                                (t (play-node-animation ani-player
-                                                        rest-animation
-                                                        +animation-overlap+)))))))))))))
+                           (when (eq dude player)
+                             (case direction
+                               (:north (play-node-animation ani-player
+                                                            forward
+                                                            :overlap-interval +animation-overlap+))
+                               (:south (play-node-animation ani-player
+                                                            backward
+                                                            :overlap-interval +animation-overlap+))
+                               (:east (play-node-animation ani-player
+                                                           right
+                                                           :overlap-interval +animation-overlap+))
+                               (:west (play-node-animation ani-player
+                                                           left
+                                                           :overlap-interval +animation-overlap+))
+                               (:north-west (play-node-animation
+                                             ani-player
+                                             forward-left
+                                             :overlap-interval +animation-overlap+))
+                               (:north-east (play-node-animation
+                                             ani-player
+                                             forward-right
+                                             :overlap-interval +animation-overlap+))
+                               (:south-west (play-node-animation
+                                             ani-player
+                                             backward-left
+                                             :overlap-interval +animation-overlap+))
+                               (:south-east (play-node-animation
+                                             ani-player
+                                             backward-right
+                                             :overlap-interval +animation-overlap+))
+                               (t (play-node-animation
+                                   ani-player
+                                   rest-animation
+                                   :overlap-interval +animation-overlap+)))))))))))))
 
 
 (defmethod discard-node ((this dude-model))
