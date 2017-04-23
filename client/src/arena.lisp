@@ -28,17 +28,18 @@
   (with-slots (dudes player) this
     (dolist (dude-state (getf state :player-list))
       (with-instance-lock-held (this)
-        (let* ((dude-name (getf dude-state :name))
-               (dude (gethash dude-name dudes)))
+        (let* ((dude-name (getf dude-state :name)))
           (unless (equal dude-name (name-of player))
-            (unless dude
-              (setf dude (make-instance 'proxy :name dude-name)
-                    (gethash dude-name dudes) dude)
-              (post (make-player-added dude) (events)))
-            (update-proxy dude
-                          (sequence->vec2 (getf dude-state :position))
-                          (sequence->vec2(getf dude-state :rotation))
-                          timestamp)))))))
+            (let ((dude (gethash dude-name dudes)))
+
+              (unless dude
+                (setf dude (make-instance 'proxy :name dude-name)
+                      (gethash dude-name dudes) dude)
+                (post (make-player-added dude) (events)))
+              (update-proxy dude
+                            (sequence->vec2 (getf dude-state :position))
+                            (sequence->vec2(getf dude-state :rotation))
+                            timestamp))))))))
 
 
 (defun shoot-ball (player)
