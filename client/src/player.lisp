@@ -11,6 +11,7 @@
 
 (defclass player (subscriber)
   ((name :initarg :name :initform (error ":name missing") :reader name-of)
+   (movement :initform nil :reader movement-of)
    (position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
    (rotation :initform (vec2) :accessor rotation-of)
 
@@ -33,6 +34,21 @@
     position))
 
 
+(defmethod (setf movement-of) (direction (this player))
+  (with-slots (movement) this
+    (setf movement direction))
+  (setf (velocity-of this) (case direction
+                             (:north (vec2 0.0 +player-speed+))
+                             (:west (vec2 (- +player-speed+) 0.0))
+                             (:south (vec2 0.0 (- +player-speed+)))
+                             (:east (vec2 +player-speed+ 0.0))
+                             (:north-west (vec2 (- +player-speed+) +player-speed+))
+                             (:south-west (vec2 (- +player-speed+) (- +player-speed+)))
+                             (:south-east (vec2 +player-speed+ (- +player-speed+)))
+                             (:north-east (vec2 +player-speed+ +player-speed+))
+                             (t (vec2 0.0 0.0)))))
+
+
 (defun gaze-of (player)
   "In global coords"
   (with-slots (rotation) player
@@ -52,9 +68,9 @@
 
 
 (defmethod initialize-instance :after ((this player) &key)
-  (flet ((update-velocity (ev)
-           (setf (velocity-of this) (velocity-from ev)))
+  (flet ((update-movement (ev)
+           (setf (movement-of this) (direction-from ev)))
          (update-rotation (ev)
            (look-at this (ax-from ev) (ay-from ev))))
     (register-event-handler 'camera-rotated #'update-rotation)
-    (register-event-handler 'velocity-changed #'update-velocity)))
+    (register-event-handler 'movement-changed #'update-movement)))

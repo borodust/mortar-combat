@@ -37,8 +37,8 @@
   (ax ay))
 
 
-(defevent velocity-changed ()
-  (velocity))
+(defevent movement-changed ()
+  (direction))
 
 
 (defevent trigger-pulled () ())

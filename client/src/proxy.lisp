@@ -3,6 +3,7 @@
 
 (defclass proxy ()
   ((name :initarg :name :initform (error ":name missing") :reader name-of)
+   (movement :initform nil)
    (position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
    (rotation :initform (vec2) :reader rotation-of)
    (updated-at :initform (real-time-seconds))

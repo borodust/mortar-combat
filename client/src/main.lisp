@@ -111,7 +111,7 @@
                             'player-added
                             'game-state-updated
                             'camera-rotated
-                            'velocity-changed
+                            'movement-changed
                             'trigger-pulled)
     (setf keymap (make-instance 'keymap)
           task-queue (make-task-queue))
@@ -126,23 +126,31 @@
                      (post (make-camera-rotated ax (- ay)) eve)))
                  (setf prev-x x
                        prev-y y))
-               (key-velocity (key)
-                 (case key
-                   (:w (vec2 0.0 +player-speed+))
-                   (:s (vec2 0.0 (- +player-speed+)))
-                   (:a (vec2 (- +player-speed+) 0.0))
-                   (:d (vec2 +player-speed+ 0.0))))
-               (update-velocity ()
-                 (post (make-velocity-changed (reduce #'add movement-keys
-                                                      :key #'key-velocity
-                                                      :initial-value (vec2)))
-                       eve))
+               (update-movement ()
+                 (flet ((set-equal (this that)
+                          (null (set-difference this that))))
+                   (let* ((first (first movement-keys))
+                          (second (second movement-keys))
+                          (both (list first second))
+                          (direction (cond
+                                       ((null first) nil)
+                                       ((null second) (case first
+                                                        (:w :north)
+                                                        (:a :west)
+                                                        (:s :south)
+                                                        (:d :east)))
+                                       (second (switch (both :test #'set-equal)
+                                                 ('(:w :a) :north-west)
+                                                 ('(:w :d) :north-east)
+                                                 ('(:s :a) :south-west)
+                                                 ('(:s :d) :south-east))))))
+                     (post (make-movement-changed direction) eve))))
                (update-buttons (button)
                  (lambda (state)
                    (case state
                      (:pressed (push button movement-keys))
                      (:released (deletef movement-keys button)))
-                   (update-velocity)))
+                   (update-movement)))
                (shoot (state)
                  (when (eq :pressed state)
                    (post (make-trigger-pulled) eve))))
