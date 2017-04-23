@@ -153,11 +153,12 @@
                      (:released (deletef movement-keys button)))
                    (update-movement)))
                (shoot (state)
-                 (when (eq :pressed state)
-                   (post (make-trigger-pulled) eve))))
-
+                 (when (and (eq :pressed state) arena)
+                   (let ((player (player-of arena)))
+                     (when game-client
+                       (send-shot-info game-client player))
+                     (post (make-trigger-pulled player) eve)))))
         (bind-cursor keymap #'rotate-camera)
-
         (bind-button keymap :w (update-buttons :w))
         (bind-button keymap :s (update-buttons :s))
         (bind-button keymap :a (update-buttons :a))

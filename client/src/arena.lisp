@@ -31,14 +31,13 @@
         (let* ((dude-name (getf dude-state :name)))
           (unless (equal dude-name (name-of player))
             (let ((dude (gethash dude-name dudes)))
-
               (unless dude
                 (setf dude (make-instance 'proxy :name dude-name)
                       (gethash dude-name dudes) dude)
                 (post (make-player-added dude) (events)))
               (update-proxy dude
                             (sequence->vec2 (getf dude-state :position))
-                            (sequence->vec2(getf dude-state :rotation))
+                            (sequence->vec2 (getf dude-state :rotation))
                             timestamp
                             (getf dude-state :movement)))))))))
 
@@ -46,8 +45,9 @@
 (defun shoot-ball (player)
   (let ((pos (position-of player)))
     (run (>> (assembly-flow 'ball-model
+                            :owner player
                             :position (vec3 (+ (x pos) 1.0) 10.0 (- (y pos)))
-                            :force (mult (gaze-of player) 10000))
+                            :force (mult (gaze-of player) 20000))
              (-> ((mortar-combat)) (ball)
                (let ((group (find-node (root-of (scene-of *system*)) :ball-group)))
                  (adopt group ball)))))))
@@ -68,10 +68,7 @@
            (game-state-updated (ev)
              (update-game-state this (state-from ev) (timestamp-from ev)))
            (shoot (ev)
-             (declare (ignore ev))
-             (shoot-ball player))
-           (update-velocity (ev)
-             (setf (velocity-of player) (velocity-from ev))))
+             (shoot-ball (player-from ev))))
       (register-event-handler 'trigger-pulled #'shoot)
       (register-event-handler 'player-added #'add-player)
       (register-event-handler 'game-state-updated #'game-state-updated))))

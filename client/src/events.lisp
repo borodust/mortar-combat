@@ -41,4 +41,5 @@
   (player direction))
 
 
-(defevent trigger-pulled () ())
+(defevent trigger-pulled ()
+  (player))

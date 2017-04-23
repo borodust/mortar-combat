@@ -32,6 +32,11 @@
     (lerp rotation next-rotation (proxy-lerp-factor this))))
 
 
+(defmethod gaze-of ((this proxy))
+  (with-slots (next-rotation) this
+    (calc-gaze next-rotation)))
+
+
 (defun update-proxy (proxy pos rot timestamp movement)
   (with-slots (next-position
                next-at position updated-at

@@ -6,16 +6,19 @@
 (defvar *dude-bounds-initial-position* (vec4 0.0 7.5 0.0 1.0))
 (defvar *dude-bounds-initial-rotation* (euler-angles->mat4 (vec4 (/ pi 2) 0.0 0.0)))
 
-(defclass dude-bounds (collidable cylinder-geom) ())
+
+;;
+(defclass dude-bounds (ownable collidable cylinder-geom) ())
 
 
 (defclass dude-body (disposable)
   (bounds))
 
 
-(defmethod initialize-instance :after ((this dude-body) &key)
+(defmethod initialize-instance :after ((this dude-body) &key owner)
   (with-slots (bounds) this
     (setf bounds (make-instance 'dude-bounds
+                                :owner owner
                                 :radius 2.0
                                 :length 13.0))
     (setf (position-of bounds) (vec3 (x *dude-bounds-initial-position*)
@@ -111,7 +114,7 @@
                 rest-animation rest
                 program p))
         (-> ((physics)) ()
-          (setf body (make-instance 'dude-body)))
+          (setf body (make-instance 'dude-body :owner dude)))
         (call-next-method)
         (instantly ()
           (let* ((ani-player (find-node (model-root-of this) :dude-animation))
@@ -181,8 +184,10 @@
 
 
 (defmethod scene-pass ((this dude-model) (pass simulation-pass) input)
-  (with-slots (body) this
-    (let* ((pos (mult *model-matrix* *dude-bounds-initial-position*))
+  (with-slots (body player) this
+    (let* ((p-pos (position-of player))
+           (pos (mult *model-matrix* (add *dude-bounds-initial-position*
+                                          (vec4 (x p-pos) 0.0 (- (y p-pos))))))
            (w (w pos)))
       (flet ((w/ (v)
                (/ v w)))

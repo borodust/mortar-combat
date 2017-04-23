@@ -1,15 +1,17 @@
 (in-package :mortar-combat)
 
 
-(defclass ball-geom (collidable sphere-geom) ())
+(defclass ball-geom (ownable collidable sphere-geom) ())
 (defclass ball-body (disposable)
   (body geom))
 
 
-(defmethod initialize-instance :after ((this ball-body) &key position force)
+(defmethod initialize-instance :after ((this ball-body) &key position force owner)
   (with-slots (body geom) this
     (setf body (make-rigid-body)
-          geom (make-instance 'ball-geom :radius (/ 1.025 2)))
+          geom (make-instance 'ball-geom
+                              :owner owner
+                              :radius (/ 1.025 2)))
     (when force
       (apply-force body force))
     (when position
@@ -62,14 +64,17 @@
   (body mesh program))
 
 
-(defmethod initialization-flow ((this ball-model) &key position force)
+(defmethod initialization-flow ((this ball-model) &key position force owner)
   (with-slots (body mesh program) this
     (>> (resource-flow "mesh.Ball" (shading-program-resource-name "passthru-program"))
         (instantly (m p)
           (setf mesh m
                 program p))
         (-> ((physics)) ()
-          (setf body (make-instance 'ball-body :position position :force force)))
+          (setf body (make-instance 'ball-body
+                                    :owner owner
+                                    :position position
+                                    :force force)))
         (call-next-method))))
 
 

@@ -30,6 +30,22 @@
              ()))))
 
 
+(defun send-shot-info (client player)
+  (run (-> (client :command :shot-info
+                   :no-reply t
+                   :name (name-of player)
+                   :timestamp (real-time-seconds))
+           ())))
+
+
 (defmethod process-command ((command (eql :game-state)) message)
   (post (make-game-state-updated (getf message :state) (getf message :timestamp)) (events))
+  nil)
+
+
+(defmethod process-command ((command (eql :server-shot-info)) message)
+  (with-slots (arena) *connector*
+    (with-message (player-name) message
+      (when-let ((dude (find-dude arena player-name)))
+        (post (make-trigger-pulled dude) (events)))))
   nil)

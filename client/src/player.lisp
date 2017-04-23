@@ -5,9 +5,20 @@
 (defvar *forward-gaze* (vec3 0.0 0.0 -1.0))
 
 
+;;
+(defclass ownable ()
+  ((owner :initarg :owner :initform (error ":owner missing") :reader owner-of)))
+
+
+(defmethod collide ((this ownable) (that ownable))
+  (when (eq (owner-of this) (owner-of that))
+    t))
+
+
 (defgeneric position-of (player))
 (defgeneric rotation-of (player))
 (defgeneric name-of (player))
+(defgeneric gaze-of (player))
 
 (defclass player (subscriber)
   ((name :initarg :name :initform (error ":name missing") :reader name-of)
@@ -49,10 +60,14 @@
                              (t (vec2 0.0 0.0)))))
 
 
-(defun gaze-of (player)
+(defun calc-gaze (rotation)
+  (normalize (rotate *forward-gaze* (euler-angles->quat (x rotation) (y rotation) 0.0))))
+
+
+(defmethod gaze-of ((this player))
   "In global coords"
-  (with-slots (rotation) player
-    (normalize (rotate *forward-gaze* (euler-angles->quat (x rotation) (y rotation) 0.0)))))
+  (with-slots (rotation) this
+    (calc-gaze rotation)))
 
 
 (defun (setf velocity-of) (vec2 player)

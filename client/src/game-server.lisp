@@ -1,7 +1,7 @@
 (in-package :mortar-combat)
 
 
-(defclass game-server (connector)
+(defclass game-server (subscriber connector)
   ((arena :initarg :arena))
   (:default-initargs :host (property :server-address "127.0.0.1")
     :port (property :proxy-server-port 8222)))
@@ -9,6 +9,19 @@
 
 (defun make-game-server (arena)
   (make-instance 'game-server :arena arena))
+
+
+(defun broadcast-shot-info (server player)
+  (run (-> (server :command :server-shot-info
+                   :no-reply t
+                   :player-name (name-of player))
+           ())))
+
+
+(defmethod initialize-instance :after ((this game-server) &key)
+  (flet ((broadcast-shot (ev)
+           (broadcast-shot-info this (player-from ev))))
+  (register-event-handler 'trigger-pulled #'broadcast-shot)))
 
 
 (defmethod process-command ((command (eql :register-player)) message)
@@ -29,6 +42,14 @@
                       (sequence->vec2 rotation)
                       timestamp
                       movement))))
+  nil)
+
+
+(defmethod process-command ((command (eql :shot-info)) message)
+  (with-slots (arena) *connector*
+    (with-message (name) message
+      (when-let ((player (find-dude arena name)))
+        (post (make-trigger-pulled player) (events)))))
   nil)
 
 
