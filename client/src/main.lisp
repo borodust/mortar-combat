@@ -52,7 +52,13 @@
                (-> ((mortar-combat)) ()
                    (setf arena new-arena
                          game-server server)
-                   (update-player-camera scene arena)))))))
+                   (update-player-camera scene arena))
+               (-> ((host)) ()
+                 (lock-cursor)))))))
+
+
+(define-event-handler on-arena-create new-arena-requested (ev name)
+  (create-combat-arena name))
 
 
 (defun join-combat-arena (name)
@@ -65,7 +71,18 @@
                  (setf arena new-arena
                        game-client client)
                  (update-player-camera scene arena)
-                 (register-player client (server-identity-name identity))))))))
+                 (register-player client (server-identity-name identity)))
+               (-> ((host)) ()
+                 (lock-cursor)))))))
+
+
+(defun load-arena-list ()
+  (with-slots (remote-server) (mortar-combat)
+    (get-arena-list remote-server)))
+
+
+(define-event-handler on-arena-join arena-join-requested (ev name)
+  (join-combat-arena name))
 
 
 (defun ping-game-server ()
@@ -117,8 +134,10 @@
                             'camera-rotated
                             'movement-changed
                             'trigger-pulled
-                            'button-click-event
-                            'exit-requested)
+                            'exit-requested
+                            'new-arena-requested
+                            'arena-join-requested)
+    (register-poiu-events (events))
     (setf keymap (make-instance 'keymap)
           task-queue (make-task-queue))
     (let ((prev-x nil)
@@ -208,12 +227,13 @@
                  (run looped-flow)))))))
 
 
-(defmethod discard-system ((this mortar-combat))
+(defmethod discard-system :before ((this mortar-combat))
   (with-slots (scene remote-server game-client game-server arena) this
     (dolist (server (list remote-server game-client game-server))
       (when server
         (disconnect-from-server server)))
-    (dispose scene)
+    ;; fixme: dispose scene after all
+    #++(dispose scene)
     (setf remote-server nil
           game-client nil
           game-server nil)
@@ -228,7 +248,7 @@
 
 (defun stop ()
   (shutdown)
-  (mt:open-latch *main-latch* ))
+  (mt:open-latch *main-latch*))
 
 
 (define-event-handler on-close viewport-hiding-event (ev)

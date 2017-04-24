@@ -46,3 +46,11 @@
 
 
 (defevent exit-requested () ())
+
+
+(defevent new-arena-requested ()
+  (name))
+
+
+(defevent arena-join-requested ()
+  (name))
