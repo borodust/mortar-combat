@@ -54,3 +54,6 @@
 
 (defevent arena-join-requested ()
   (name))
+
+
+(defevent arena-leave-requested () ())

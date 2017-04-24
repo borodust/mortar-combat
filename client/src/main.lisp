@@ -136,7 +136,8 @@
                             'trigger-pulled
                             'exit-requested
                             'new-arena-requested
-                            'arena-join-requested)
+                            'arena-join-requested
+                            'arena-leave-requested)
     (register-poiu-events (events))
     (setf keymap (make-instance 'keymap)
           task-queue (make-task-queue))
