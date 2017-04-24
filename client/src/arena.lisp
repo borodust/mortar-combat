@@ -58,11 +58,13 @@
 
 
 (defun shoot-ball (player)
-  (let ((pos (position-of player)))
+  (let ((pos (position-of player))
+        (gaze (gaze-of player)))
     (run (>> (assembly-flow 'ball-model
                             :owner player
-                            :position (vec3 (+ (x pos) 1.0) 10.0 (- (y pos)))
-                            :force (mult (gaze-of player) 20000))
+                            ;; fixme: translate by +x to center ball at mortar
+                            :position (vec3 (x pos) 8.2 (- (y pos)))
+                            :force (mult gaze 20000))
              (-> ((mortar-combat)) (ball)
                (let ((group (find-node (root-of (scene-of *system*)) :ball-group)))
                  (adopt group ball)))))))
