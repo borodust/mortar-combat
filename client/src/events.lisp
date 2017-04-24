@@ -43,3 +43,6 @@
 
 (defevent trigger-pulled ()
   (player))
+
+
+(defevent exit-requested () ())

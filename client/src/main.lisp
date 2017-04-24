@@ -77,13 +77,17 @@
 
 
 (defun scenegraph-flow ()
-  (scenegraph
-   (transform-node
-    ((projection-node :aspect (/ 800 600))
-     ((player-camera :name :camera)
-      (room-model)
-      ((scene-node :name :ball-group))
-      ((scene-node :name :dude-group)))))))
+  (>> (resource-flow (font-resource-name "NotoSansUI-Regular.ttf"))
+      (->> (font)
+        (scenegraph
+         (transform-node
+          ((scene-node :name :arena)
+           ((projection-node :aspect (/ 800 600))
+            ((player-camera :name :camera)
+             (room-model)
+             ((scene-node :name :ball-group))
+             ((scene-node :name :dude-group)))))
+          ((interactive-board-node :width 800 :height 600 :font font :name :ui)))))))
 
 
 (defmethod dispatch ((this mortar-combat) (task function) invariant &key)
@@ -112,7 +116,9 @@
                             'game-state-updated
                             'camera-rotated
                             'movement-changed
-                            'trigger-pulled)
+                            'trigger-pulled
+                            'button-click-event
+                            'exit-requested)
     (setf keymap (make-instance 'keymap)
           task-queue (make-task-queue))
     (let ((prev-x nil)
@@ -168,7 +174,6 @@
     (enable-keymap keymap)
 
     (run (>> (-> ((host)) ()
-               (lock-cursor)
                (setf (viewport-title) "Mortar Combat")
                (setf (viewport-size) (vec2 800 600)))
              (-> ((physics)) ()
@@ -179,8 +184,9 @@
              (instantly (scenegraph-root)
                (setf scene (make-scene (make-pass-chain (make-simulation-pass)
                                                         (make-rendering-pass))
-                                       scenegraph-root)))
-             (concurrently ()
+                                       scenegraph-root))
+               (let ((board (find-node (root-of scene) :ui)))
+                 (make-ui this board))
                (let ((accumulated-time 0)
                      start looped-flow)
                  (setf looped-flow
@@ -220,10 +226,15 @@
 
 
 (defun stop ()
-  (shutdown))
+  (shutdown)
+  (mt:open-latch *main-latch* ))
 
 
-(define-event-handler on-exit viewport-hiding-event (ev)
+(define-event-handler on-close viewport-hiding-event (ev)
+  (post (make-exit-requested) (events)))
+
+
+(define-event-handler on-exit exit-requested (ev)
   (in-new-thread "exit-thread"
     (stop)))
 

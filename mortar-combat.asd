@@ -43,6 +43,7 @@
                (:file "connector")
                (:file "game-server")
                (:file "game-client")
+               (:file "ui")
                (:file "main")))
 
 
