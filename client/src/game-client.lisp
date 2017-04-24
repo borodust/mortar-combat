@@ -49,3 +49,14 @@
       (when-let ((dude (find-dude arena player-name)))
         (post (make-trigger-pulled dude) (events)))))
   nil)
+
+
+(defmethod process-command ((command (eql :server-hit-info)) message)
+  (with-slots (arena) *connector*
+    (with-message (player-name) message
+      (let ((dude (find-dude arena player-name))
+            (player (player-of arena)))
+        (cond
+          (dude (register-hit arena dude))
+          ((equal player-name (name-of player)) (register-hit arena player))))))
+  nil)

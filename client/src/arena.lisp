@@ -3,7 +3,8 @@
 
 (defclass arena (lockable subscriber)
   ((player :reader player-of)
-   (dudes :initform (make-hash-table :test 'equal))))
+   (dudes :initform (make-hash-table :test 'equal))
+   (score-table :initform (make-hash-table :test 'equal))))
 
 
 (defun dudes-of (arena)
@@ -22,6 +23,20 @@
   (with-slots (dudes) arena
     (with-instance-lock-held (arena)
       (gethash name dudes))))
+
+
+(defun register-hit (arena player)
+  (with-slots (score-table) arena
+    (with-instance-lock-held (arena)
+      (incf (gethash (name-of player) score-table 0)))))
+
+
+(defun score (arena)
+  (with-slots (score-table) arena
+    (with-instance-lock-held (arena)
+      (loop for name being the hash-key of score-table
+         using (hash-value score)
+         collect (cons name score)))))
 
 
 (defun update-game-state (this state timestamp)

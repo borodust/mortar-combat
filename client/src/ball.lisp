@@ -1,7 +1,26 @@
 (in-package :mortar-combat)
 
 
-(defclass ball-geom (ownable collidable sphere-geom) ())
+(defclass ball-geom (ownable collidable sphere-geom)
+  ((body :initarg :body :accessor body-of)))
+
+
+(defmethod collide ((this ball-geom) (that ball-geom))
+  nil)
+
+
+(defmethod filter-contacts (contacts (this ball-geom) (that dude-bounds))
+  (unless (or (eq (owner-of this) (owner-of that))
+              (< (vector-length (linear-velocity-of (body-of this))) 10))
+    (post (make-hit-detected (owner-of that)) (events)))
+  contacts)
+
+
+(defmethod filter-contacts (contacts (that dude-bounds) (this ball-geom))
+  (filter-contacts contacts this that))
+
+
+;;
 (defclass ball-body (disposable)
   (body geom))
 
@@ -10,6 +29,7 @@
   (with-slots (body geom) this
     (setf body (make-rigid-body)
           geom (make-instance 'ball-geom
+                              :body body
                               :owner owner
                               :radius (/ 1.025 2)))
     (when force

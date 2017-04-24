@@ -57,3 +57,7 @@
 
 
 (defevent arena-leave-requested () ())
+
+
+(defevent hit-detected ()
+  (player))

@@ -1,6 +1,14 @@
 (in-package :mortar-combat)
 
 
+(defun fill-score-table (layout arena)
+  (abandon-all layout)
+  (loop for (name . score) in (score arena)
+     do
+       (adopt layout (make-text-label name :align :left))
+       (adopt layout (make-text-label (format nil "~A" score) :align :right))))
+
+
 (defun make-ui (board)
   (enable-mouse-input board)
   (enable-character-input board)
@@ -12,16 +20,15 @@
                                                   :title "Enter arena name:"
                                                   :headerless nil
                                                   :hidden t))
-        (game-menu (make-board-window board 20 536 760 44 :hidden t))
+        (game-menu (make-board-window board 20 236 760 250 :hidden t))
         (combat-zone (make-board-window board 10 10 780 580 :hidden t))
         (login-dialog (make-board-window board 300 200 200 145
                                   :title "Enter your name:"
                                   :headerless nil)))
     (adopt-layout-by (main-menu)
-      ((dynamic-row-layout 32 1)
+      ((dynamic-row-layout 32 :columns 1)
        ((label-button "Combat zone" :name :combat-zone))
        ((label-button "Quit" :name :quit))))
-
 
     (adopt-layout-by (login-dialog)
       ((dynamic-row-layout 32)
@@ -31,7 +38,6 @@
        ((label-button "Quit" :name :quit))
        ((spacing))
        ((label-button "Log in" :name :login))))
-
 
     (adopt-layout-by (arena-creation-dialog)
       ((dynamic-row-layout 32)
@@ -45,7 +51,10 @@
     (adopt-layout-by (game-menu)
       ((dynamic-row-layout 32)
        ((label-button "Leave arena" :name :leave))
-       ((label-button "Quit" :name :quit))))
+       ((label-button "Quit" :name :quit)))
+      ((dynamic-row-layout 26)
+       ((text-label "Score:")))
+      ((dynamic-row-layout 32 :columns 2 :name :score-table)))
 
     (adopt-layout-by (combat-zone)
       ((dynamic-row-layout 32)
@@ -53,13 +62,14 @@
        ((label-button "Join" :name :join))
        ((label-button "Refresh " :name :refresh))
        ((label-button "Main menu" :name :zone-to-main-menu)))
-      ((dynamic-row-layout 32 1)
+      ((dynamic-row-layout 32 :columns 1)
        ((text-label "Available arenas:"))
        ((list-select 32 :name :arena-list))))
 
     (let ((nickname-edit (find-element login-dialog :nickname))
           (arena-name-edit (find-element arena-creation-dialog :arena-name))
           (arena-list (find-element combat-zone :arena-list))
+          (score-table (find-element game-menu :score-table))
           (selected-arena))
       (flet ((refresh-arena-list ()
                (run (>> (load-arena-list)
@@ -73,8 +83,10 @@
                  (run (>> (-> ((mortar-combat)) ()
                             (let ((hidden-p (hiddenp game-menu)))
                               (if hidden-p
-                                   (show-window game-menu)
-                                   (hide-window game-menu))
+                                  (progn
+                                    (fill-score-table score-table (arena-of *system*))
+                                    (show-window game-menu))
+                                  (hide-window game-menu))
                               hidden-p))
                           (-> ((host)) (was-hidden-p)
                             (if was-hidden-p

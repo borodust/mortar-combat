@@ -18,10 +18,23 @@
            ())))
 
 
+(defun broadcast-hit-info (server player)
+  (run (-> (server :command :server-hit-info
+                   :no-reply t
+                   :player-name (name-of player))
+           ())))
+
+
 (defmethod initialize-instance :after ((this game-server) &key)
-  (flet ((broadcast-shot (ev)
-           (broadcast-shot-info this (player-from ev))))
-  (register-event-handler 'trigger-pulled #'broadcast-shot)))
+  (with-slots (arena) this
+    (flet ((broadcast-shot (ev)
+             (broadcast-shot-info this (player-from ev)))
+           (broadcast-hit (ev)
+             (let ((player (player-from ev)))
+               (register-hit arena player)
+               (broadcast-hit-info this player))))
+      (register-event-handler 'trigger-pulled #'broadcast-shot)
+      (register-event-handler 'hit-detected #'broadcast-hit))))
 
 
 (defmethod process-command ((command (eql :register-player)) message)
