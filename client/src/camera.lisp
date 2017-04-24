@@ -1,7 +1,7 @@
 (in-package :mortar-combat)
 
 
-(defclass player-camera (camera-node)
+(defclass player-camera (enableable-node camera-node)
   ((player :initarg :player :initform nil :accessor player-of)
    (front-gaze :initform (vec3 0.0 0.0 -1.0))))
 

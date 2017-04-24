@@ -49,12 +49,11 @@
            (server (make-game-server new-arena)))
       (run (>> (register-game-stream server (server-identity-id identity))
                (create-arena remote-server name)
-               (assembly-flow 'player-node :player (player-of new-arena))
-               (-> ((mortar-combat)) (player)
+               (-> ((mortar-combat)) ()
                    (setf arena new-arena
                          game-server server)
-                   (update-player-camera scene arena)
-                   (adopt (find-node (root-of scene) :dude-group) player))
+                   (update-player-camera scene arena))
+               (player-adding-flow new-arena scene)
                (-> ((host)) ()
                  (lock-cursor)))))))
 
@@ -63,19 +62,25 @@
   (create-combat-arena name))
 
 
+(defun player-adding-flow (arena scene)
+  (>> (assembly-flow 'player-node :player (player-of arena))
+      (-> ((mortar-combat)) (player)
+        (adopt (find-node (root-of scene) :dude-group) player)
+        (enable-node (find-node (root-of scene) :camera)))))
+
+
 (defun join-combat-arena (name)
   (with-slots (remote-server identity game-client arena scene) (mortar-combat)
     (let* ((new-arena (make-instance 'arena :player-name (server-identity-name identity)))
            (client (make-game-client new-arena)))
       (run (>> (register-game-stream client (server-identity-id identity))
                (join-arena remote-server name)
-               (assembly-flow 'player-node :player (player-of new-arena))
-               (-> ((mortar-combat)) (player)
+               (-> ((mortar-combat)) ()
                  (setf arena new-arena
                        game-client client)
                  (update-player-camera scene arena)
-                 (adopt (find-node (root-of scene) :dude-group) player)
                  (register-player client (server-identity-name identity)))
+               (player-adding-flow new-arena scene)
                (-> ((host)) ()
                  (lock-cursor)))))))
 
@@ -104,7 +109,7 @@
          (transform-node
           ((scene-node :name :arena)
            ((projection-node :aspect (/ 800 600))
-            ((player-camera :name :camera)
+            ((player-camera :name :camera :enabled-p nil)
              (room-model)
              ((scene-node :name :ball-group))
              ((scene-node :name :dude-group)))))
