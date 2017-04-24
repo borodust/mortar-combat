@@ -18,10 +18,11 @@ manifest: prepare
 	     --eval "(ql:write-asdf-manifest-file \"$(MANIFEST_FILE)\" :if-exists :supersede)"
 
 executable: prepare manifest
-	buildapp --output $(BUILD_DIR)/server/server.bin	\
-		 --entry "mortar-combat.proxy::main"		\
-		 --manifest-file $(MANIFEST_FILE)		\
-		 --load-system "mortar-combat/proxy"		\
+	buildapp --output $(BUILD_DIR)/server/server.bin		\
+		 --entry "mortar-combat.proxy::main"			\
+		 --manifest-file $(MANIFEST_FILE)			\
+		 --eval "(push :bodge-production-mode *features*)"	\
+		 --load-system "mortar-combat/proxy"			\
 		 --compress-core
 
 image: executable

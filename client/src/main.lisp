@@ -15,7 +15,8 @@
    (identity :initform nil)
 
    (keymap :initform nil)
-   (arena :initform nil :reader arena-of))
+   (arena :initform nil :reader arena-of)
+   (arena-leave-handler :initform nil))
   (:default-initargs :depends-on '(event-system
                                    graphics-system
                                    physics-system
@@ -41,6 +42,27 @@
 (defun update-player-camera (scene arena)
   (let ((cam (find-node (root-of scene) :camera)))
     (setf (player-of cam) (player-of arena))))
+
+
+(defun register-arena-leave-handler (this)
+  (with-slots (arena-leave-handler scene remote-server arena
+                                   game-server game-client)
+      this
+    (flet ((node (name)
+             (find-node (root-of scene) name)))
+      (setf arena-leave-handler
+            (subscribe-body-to (arena-leave-requested ()) (events)
+              (run (>> (leave-arena remote-server)
+                       (-> this ()
+                         (disable-node (node :camera))
+                         (abandon-all (node :dude-group))
+                         (abandon-all (node :ball-group))
+                         (let ((conn (or game-server game-client)))
+                           (disconnect-from-server conn)
+                           (dispose conn))
+                         (setf arena nil
+                               game-server nil
+                               game-client nil)))))))))
 
 
 (defun create-combat-arena (name)
@@ -203,6 +225,8 @@
 
     (enable-keymap keymap)
 
+    (register-arena-leave-handler this)
+
     (run (>> (-> ((host)) ()
                (setf (viewport-title) "Mortar Combat")
                (setf (viewport-size) (vec2 800 600)))
@@ -244,10 +268,14 @@
 
 
 (defmethod discard-system :before ((this mortar-combat))
-  (with-slots (scene remote-server game-client game-server arena) this
+  (with-slots (scene remote-server game-client game-server arena
+                     arena-leave-handler)
+      this
     (dolist (server (list remote-server game-client game-server))
       (when server
         (disconnect-from-server server)))
+    (when arena-leave-handler
+      (unsubscribe-from 'arena-leave-requested arena-leave-handler (events)))
     ;; fixme: dispose scene after all
     #++(dispose scene)
     (setf remote-server nil

@@ -34,19 +34,20 @@
               (handler-case
                   (progn
                     (usocket:wait-for-input connection)
-                    (let* ((stream (connection-stream-of this))
-                           (message (decode-message stream))
-                           (*connector* this))
-                      (if-let ((reply-id (getf message :reply-for)))
-                        (with-instance-lock-held (this)
-                          (if-let ((handler (gethash reply-id message-table)))
-                            (progn
-                              (remhash reply-id message-table)
-                              (funcall handler message))
-                            (log:error "Handler not found for message with id ~A" reply-id)))
-                        (when-let ((reply (process-command (getf message :command) message)))
-                          (encode-message reply stream)
-                          (force-output stream)))))
+                    (when enabled-p
+                      (let* ((stream (connection-stream-of this))
+                             (message (decode-message stream))
+                             (*connector* this))
+                        (if-let ((reply-id (getf message :reply-for)))
+                          (with-instance-lock-held (this)
+                            (if-let ((handler (gethash reply-id message-table)))
+                              (progn
+                                (remhash reply-id message-table)
+                                (funcall handler message))
+                              (log:error "Handler not found for message with id ~A" reply-id)))
+                          (when-let ((reply (process-command (getf message :command) message)))
+                            (encode-message reply stream)
+                            (force-output stream))))))
                 (end-of-file ()
                   (setf enabled-p nil)
                   (log:debug "Disconnected from server"))))
@@ -56,7 +57,8 @@
 (defun disconnect-from-server (connector)
   (with-slots (enabled-p connection) connector
     (when enabled-p
-      (usocket:socket-close connection))))
+      (usocket:socket-close connection)
+      (setf enabled-p nil))))
 
 
 (defun check-response (message expected-command)
@@ -116,6 +118,11 @@
 
 (defun join-arena (connector name)
   (-> (connector :command :join-arena :name name) ()
+    (with-response () :ok)))
+
+
+(defun leave-arena (connector)
+  (-> (connector :command :exit-arena) ()
     (with-response () :ok)))
 
 

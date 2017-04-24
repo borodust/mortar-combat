@@ -113,6 +113,7 @@
                                   (hide-window arena-creation-dialog)
                                   (subscribe-to 'keyboard-event #'toggle-game-menu (events)))
                    (:leave (unsubscribe-from 'keyboard-event #'toggle-game-menu (events))
+                           (hide-window game-menu) (show-window main-menu)
                            (post (make-arena-leave-requested) (events)))
                    (:quit (post (make-exit-requested) (events))))))))
       (subscribe-body-to (item-selected (source item)) (events)

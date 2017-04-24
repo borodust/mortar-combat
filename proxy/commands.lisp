@@ -72,7 +72,8 @@
 
 (defmethod process-command ((command (eql :exit-arena)) message)
   (when-peer-identified
-    (remove-peer-from-arena (arena-registry-of *system*) *peer*)))
+   (remove-peer-from-arena (arena-registry-of *system*) *peer*)
+   +ok-reply+))
 
 
 (defmethod process-command ((command (eql :register-game-stream)) message)
