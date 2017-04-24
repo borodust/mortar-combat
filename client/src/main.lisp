@@ -49,10 +49,12 @@
            (server (make-game-server new-arena)))
       (run (>> (register-game-stream server (server-identity-id identity))
                (create-arena remote-server name)
-               (-> ((mortar-combat)) ()
+               (assembly-flow 'player-node :player (player-of new-arena))
+               (-> ((mortar-combat)) (player)
                    (setf arena new-arena
                          game-server server)
-                   (update-player-camera scene arena))
+                   (update-player-camera scene arena)
+                   (adopt (find-node (root-of scene) :dude-group) player))
                (-> ((host)) ()
                  (lock-cursor)))))))
 
@@ -67,10 +69,12 @@
            (client (make-game-client new-arena)))
       (run (>> (register-game-stream client (server-identity-id identity))
                (join-arena remote-server name)
-               (-> ((mortar-combat)) ()
+               (assembly-flow 'player-node :player (player-of new-arena))
+               (-> ((mortar-combat)) (player)
                  (setf arena new-arena
                        game-client client)
                  (update-player-camera scene arena)
+                 (adopt (find-node (root-of scene) :dude-group) player)
                  (register-player client (server-identity-name identity)))
                (-> ((host)) ()
                  (lock-cursor)))))))

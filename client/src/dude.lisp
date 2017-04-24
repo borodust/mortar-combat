@@ -183,18 +183,22 @@
       (mortar-model)))))
 
 
+(defun move-body (body player)
+  (let* ((p-pos (position-of player))
+         (pos (mult *model-matrix* (add *dude-bounds-initial-position*
+                                        (vec4 (x p-pos) 0.0 (- (y p-pos))))))
+         (w (w pos)))
+    (flet ((w/ (v)
+             (/ v w)))
+      (setf (position-of body) (vec3 (w/ (x pos))
+                                     (w/ (y pos))
+                                     (w/ (z pos)))))))
+
+
 (defmethod scene-pass ((this dude-model) (pass simulation-pass) input)
   (with-slots (body player) this
-    (let* ((p-pos (position-of player))
-           (pos (mult *model-matrix* (add *dude-bounds-initial-position*
-                                          (vec4 (x p-pos) 0.0 (- (y p-pos))))))
-           (w (w pos)))
-      (flet ((w/ (v)
-               (/ v w)))
-        (setf (position-of body) (vec3 (w/ (x pos))
-                                       (w/ (y pos))
-                                       (w/ (z pos)))))))
-    (call-next-method))
+    (move-body body player)
+    (call-next-method)))
 
 
 (defmethod scene-pass ((this dude-model) pass input)
@@ -205,3 +209,21 @@
                                  (translation-mat4 (x pos) 0.0 (- (y pos)))
                                  (euler-angles->mat4 (vec3 0.0 (y rot) 0.0)))))
       (call-next-method))))
+
+
+;;
+(defclass player-node (scene-node)
+  ((body :initform nil)
+   (player :initarg :player)))
+
+
+(defmethod initialization-flow ((this player-node) &key)
+  (with-slots (body player) this
+    (>> (-> ((physics)) ()
+          (setf body (make-instance 'dude-body :owner player)))
+        (call-next-method))))
+
+
+(defmethod scene-pass ((this player-node) pass input)
+  (with-slots (body player) this
+    (move-body body player)))
