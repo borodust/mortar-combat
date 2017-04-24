@@ -1,14 +1,23 @@
 (in-package :mortar-combat)
 
 
-(defun make-ui (context board)
+(defun make-ui (board)
   (enable-mouse-input board)
   (enable-character-input board)
   (enable-cursor-input board)
   (enable-keyboard-input board)
-  (let ((login (make-board-window board 300 200 200 145
+
+  (let ((main-menu (make-board-window board 300 150 200 200 :hidden t))
+        (game-menu (make-board-window board 20 536 760 44 :hidden t))
+        (combat-zone (make-board-window board 10 10 780 580 :hidden t))
+        (login (make-board-window board 300 200 200 145
                                   :title "Enter your name:"
                                   :headerless nil)))
+    (adopt-layout-by (main-menu)
+      ((dynamic-row-layout 32 1)
+       ((label-button "Combat zone" :name :combat-zone))
+       ((label-button "Quit" :name :quit))))
+
     (adopt-layout-by (login)
       ((dynamic-row-layout 32)
        ((text-edit :name :nickname)))
@@ -18,8 +27,31 @@
        ((spacing))
        ((label-button "Log in" :name :login))))
 
-    (let ((nickname-edit (find-element login :nickname)))
+    (adopt-layout-by (game-menu)
+      ((dynamic-row-layout 32)
+       ((label-button "Leave arena" :name :leave))
+       ((label-button "Quit" :name :quit))))
+
+    (adopt-layout-by (combat-zone)
+      ((dynamic-row-layout 32)
+       ((label-button "Create" :name :create))
+       ((label-button "Join" :name :join))
+       ((label-button "Main menu" :name :zone-to-main-menu)))
+      ((dynamic-row-layout 32 1)
+       ((text-label "Available arenas:"))
+       ((list-select 32 :name :arena-list))))
+
+    (let ((nickname-edit (find-element login :nickname))
+          (arena-list (find-element combat-zone :arena-list)))
+      (add-item arena-list "Here")
+      (add-item arena-list "and")
+      (add-item arena-list "There")
       (subscribe-body-to (button-click-event (poiu-button)) (events)
         (case (name-of poiu-button)
-          (:login (connect (text-of nickname-edit)))
+          (:login (connect (text-of nickname-edit))
+                  ;; fixme: not thread safe
+                  (hide-window login)
+                  (show-window main-menu))
+          (:combat-zone (hide-window main-menu) (show-window combat-zone))
+          (:zone-to-main-menu (hide-window combat-zone) (show-window main-menu))
           (:quit (post (make-exit-requested) (events))))))))

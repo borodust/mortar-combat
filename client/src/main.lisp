@@ -186,7 +186,7 @@
                                                         (make-rendering-pass))
                                        scenegraph-root))
                (let ((board (find-node (root-of scene) :ui)))
-                 (make-ui this board))
+                 (make-ui board))
                (let ((accumulated-time 0)
                      start looped-flow)
                  (setf looped-flow
@@ -209,10 +209,11 @@
 
 
 (defmethod discard-system ((this mortar-combat))
-  (with-slots (remote-server game-client game-server arena) this
+  (with-slots (scene remote-server game-client game-server arena) this
     (dolist (server (list remote-server game-client game-server))
       (when server
         (disconnect-from-server server)))
+    (dispose scene)
     (setf remote-server nil
           game-client nil
           game-server nil)
