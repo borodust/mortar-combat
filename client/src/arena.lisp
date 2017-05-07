@@ -1,7 +1,7 @@
 (in-package :mortar-combat)
 
 
-(defclass arena (lockable subscriber)
+(defclass arena (lockable subscribing)
   ((player :reader player-of)
    (dudes :initform (make-hash-table :test 'equal))
    (score-table :initform (make-hash-table :test 'equal))))
@@ -49,7 +49,7 @@
               (unless dude
                 (setf dude (make-instance 'proxy :name dude-name)
                       (gethash dude-name dudes) dude)
-                (post (make-player-added dude) (events)))
+                (post 'player-added :player dude))
               (update-proxy dude
                             (sequence->vec2 (getf dude-state :position))
                             (sequence->vec2 (getf dude-state :rotation))
@@ -86,6 +86,7 @@
              (update-game-state this (state-from ev) (timestamp-from ev)))
            (shoot (ev)
              (shoot-ball (player-from ev))))
-      (register-event-handler 'trigger-pulled #'shoot)
-      (register-event-handler 'player-added #'add-player)
-      (register-event-handler 'game-state-updated #'game-state-updated))))
+      (add-event-handler this 'trigger-pulled #'shoot)
+      (add-event-handler this 'player-added #'add-player)
+      (add-event-handler this 'game-state-updated #'game-state-updated)
+      (employ-subscriber this))))

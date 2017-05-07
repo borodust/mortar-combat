@@ -7,7 +7,7 @@ LGJ Postmortem and DevLog: https://borodust.org/2017-04-lgj-postmortem
 
 ## Installation
 
-[Binary packages](https://borodust.itch.io/mortar-combat#download) for x86_64 Windows, macOS and
+[Binary packages](https://borodust.itch.io/mortar-combat#download) for x86-64 Windows, macOS and
 GNU/Linux are available for download from [itch.io](https://borodust.itch.io/mortar-combat)
 
 ## Requirements

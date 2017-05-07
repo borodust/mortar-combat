@@ -12,7 +12,7 @@
 (defmethod filter-contacts (contacts (this ball-geom) (that dude-bounds))
   (unless (or (eq (owner-of this) (owner-of that))
               (< (vector-length (linear-velocity-of (body-of this))) 10))
-    (post (make-hit-detected (owner-of that)) (events)))
+    (post 'hit-detected :player (owner-of this)))
   contacts)
 
 

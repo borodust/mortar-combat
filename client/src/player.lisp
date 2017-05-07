@@ -20,7 +20,7 @@
 (defgeneric name-of (player))
 (defgeneric gaze-of (player))
 
-(defclass player (subscriber)
+(defclass player (disposable subscribing)
   ((name :initarg :name :initform (error ":name missing") :reader name-of)
    (movement :initform nil :reader movement-of)
    (position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
@@ -88,5 +88,6 @@
              (setf (movement-of this) (direction-from ev))))
          (update-rotation (ev)
            (look-at this (ax-from ev) (ay-from ev))))
-    (register-event-handler 'camera-rotated #'update-rotation)
-    (register-event-handler 'movement-changed #'update-movement)))
+    (add-event-handler this 'camera-rotated #'update-rotation)
+    (add-event-handler this 'movement-changed #'update-movement)
+    (employ-subscriber this)))

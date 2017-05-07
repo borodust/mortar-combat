@@ -39,7 +39,9 @@
 
 
 (defmethod process-command ((command (eql :game-state)) message)
-  (post (make-game-state-updated (getf message :state) (getf message :timestamp)) (events))
+  (post 'game-state-updated
+        :state (getf message :state)
+        :timestamp (getf message :timestamp))
   nil)
 
 
@@ -47,7 +49,7 @@
   (with-slots (arena) *connector*
     (with-message (player-name) message
       (when-let ((dude (find-dude arena player-name)))
-        (post (make-trigger-pulled dude) (events)))))
+        (post 'trigger-pulled :player dude))))
   nil)
 
 

@@ -16,7 +16,7 @@
   (usocket:socket-stream (connection-of connector)))
 
 
-(defclass connector (lockable disposable dispatcher)
+(defclass connector (lockable disposable dispatching)
   ((enabled-p :initform t)
    (connection :initform nil :reader connection-of)
    (message-counter :initform 0)

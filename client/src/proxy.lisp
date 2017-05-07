@@ -1,7 +1,7 @@
 (in-package :mortar-combat)
 
 
-(defclass proxy ()
+(defclass proxy (disposable)
   ((name :initarg :name :initform (error ":name missing") :reader name-of)
    (movement :initform nil :reader movement-of)
    (position :initform (vec2)) ; f(x,y) field space = f(x,-z) global space
@@ -45,7 +45,7 @@
       proxy
     (unless (eq this-movement movement)
       (setf this-movement movement)
-      (post (make-movement-changed proxy movement) (events)))
+      (post 'movement-changed :player proxy :direction movement))
     (setf correction (- (real-time-seconds) timestamp)
 
           position (position-of proxy)

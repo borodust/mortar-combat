@@ -129,7 +129,7 @@
                  (backward-right (make-blended-animation backward right))
                  (backward-left (make-blended-animation backward left)))
             (setf movement-listener
-                  (subscribe-body-to (movement-changed (player direction)) (events)
+                  (subscribe-body (movement-changed (player direction))
                     (run (-> ((mortar-combat)) ()
                            (when (eq dude player)
                              (case direction
@@ -169,7 +169,7 @@
 
 (defmethod discard-node ((this dude-model))
   (with-slots (body movement-listener) this
-    (unsubscribe-from 'movement-changed movement-listener (events))
+    (unsubscribe 'movement-changed movement-listener)
     (dispose body)))
 
 

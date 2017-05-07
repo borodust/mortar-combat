@@ -28,10 +28,9 @@
   :pathname "client/src/"
   :components ((:file "packages")
                (:file "utils")
-               (:file "keymap")
+               (:file "events")
                (:file "player")
                (:file "proxy")
-               (:file "events")
                (:file "arena")
                (:file "camera")
                (:file "room")

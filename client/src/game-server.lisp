@@ -1,7 +1,7 @@
 (in-package :mortar-combat)
 
 
-(defclass game-server (subscriber connector)
+(defclass game-server (subscribing connector)
   ((arena :initarg :arena))
   (:default-initargs :host (property :server-address "127.0.0.1")
     :port (property :proxy-server-port 8222)))
@@ -33,8 +33,9 @@
              (let ((player (player-from ev)))
                (register-hit arena player)
                (broadcast-hit-info this player))))
-      (register-event-handler 'trigger-pulled #'broadcast-shot)
-      (register-event-handler 'hit-detected #'broadcast-hit))))
+      (add-event-handler this 'trigger-pulled #'broadcast-shot)
+      (add-event-handler this 'hit-detected #'broadcast-hit)
+      (employ-subscriber this))))
 
 
 (defmethod process-command ((command (eql :register-player)) message)
@@ -42,7 +43,7 @@
     (with-message (name) message
       (let ((player (make-instance 'proxy :name name)))
         (add-dude arena player)
-        (post (make-player-added player) (events)))))
+        (post 'player-added :player player))))
   nil)
 
 

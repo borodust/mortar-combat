@@ -9,20 +9,28 @@
        (adopt layout (make-text-label (format nil "~A" score) :align :right))))
 
 
+(defmacro subscribe-to-click ((root name) &body body)
+  (declare (ignore root))
+  `(subscribe-body (button-click-event (poiu-button))
+     (when (eq ,name (name-of poiu-button))
+       (run (-> ((mortar-combat)) ()
+              ,@body)))))
+
+
 (defun make-ui (board)
   (enable-mouse-input board)
   (enable-character-input board)
   (enable-cursor-input board)
   (enable-keyboard-input board)
 
-  (let ((main-menu (make-board-window board 300 150 200 82 :hidden t))
-        (arena-creation-dialog (make-board-window board 300 200 200 145
+  (let ((main-menu (make-board-window board (vec2 300 150) 200 82 :hidden t))
+        (arena-creation-dialog (make-board-window board (vec2 300 200) 200 145
                                                   :title "Enter arena name:"
                                                   :headerless nil
                                                   :hidden t))
-        (game-menu (make-board-window board 20 236 760 250 :hidden t))
-        (combat-zone (make-board-window board 10 10 780 580 :hidden t))
-        (login-dialog (make-board-window board 300 200 200 145
+        (game-menu (make-board-window board (vec2 20 236) 760 250 :hidden t))
+        (combat-zone (make-board-window board (vec2 10 10) 780 580 :hidden t))
+        (login-dialog (make-board-window board (vec2 300 200) 200 145
                                   :title "Enter your name:"
                                   :headerless nil)))
     (adopt-layout-by (main-menu)
@@ -92,30 +100,49 @@
                             (if was-hidden-p
                                 (unlock-cursor)
                                 (lock-cursor))))))))
-        (subscribe-body-to (button-click-event (poiu-button)) (events)
-          (run (-> ((mortar-combat)) ()
-                 (case (name-of poiu-button)
-                   (:login (connect (text-of nickname-edit))
-                           (hide-window login-dialog)
-                           (show-window main-menu))
-                   (:combat-zone (refresh-arena-list)
-                                 (hide-window main-menu)
-                                 (show-window combat-zone))
-                   (:zone-to-main-menu (hide-window combat-zone) (show-window main-menu))
-                   (:refresh (refresh-arena-list))
-                   (:create (hide-window combat-zone) (show-window arena-creation-dialog))
-                   (:join (when selected-arena
-                            (post (make-arena-join-requested selected-arena) (events))
-                            (hide-window combat-zone)
-                            (subscribe-to 'keyboard-event #'toggle-game-menu (events))))
-                   (:arena-cancel (hide-window arena-creation-dialog) (show-window combat-zone))
-                   (:arena-create (post (make-new-arena-requested (text-of arena-name-edit)) (events))
-                                  (hide-window arena-creation-dialog)
-                                  (subscribe-to 'keyboard-event #'toggle-game-menu (events)))
-                   (:leave (unsubscribe-from 'keyboard-event #'toggle-game-menu (events))
-                           (hide-window game-menu) (show-window main-menu)
-                           (post (make-arena-leave-requested) (events)))
-                   (:quit (post (make-exit-requested) (events))))))))
-      (subscribe-body-to (item-selected (source item)) (events)
+
+        (subscribe-to-click (login-dialog :login)
+          (connect (text-of nickname-edit))
+          (hide-window login-dialog)
+          (show-window main-menu))
+
+        (subscribe-to-click (main-menu :combat-zone)
+          (refresh-arena-list)
+          (hide-window main-menu)
+          (show-window combat-zone))
+
+        (subscribe-to-click (combat-zone :zone-to-main-menu)
+          (hide-window combat-zone)
+          (show-window main-menu))
+
+        (subscribe-to-click (combat-zone :refresh)
+          (refresh-arena-list))
+
+        (subscribe-to-click (combat-zone :create)
+          (hide-window combat-zone)
+          (show-window arena-creation-dialog))
+
+        (subscribe-to-click (combat-zone :join)
+          (when selected-arena
+            (post 'arena-join-requested :name selected-arena)
+            (hide-window combat-zone)
+            (subscribe 'keyboard-event #'toggle-game-menu)))
+
+        (subscribe-to-click (arena-creation-dialog :arena-cancel)
+          (hide-window arena-creation-dialog)
+          (show-window combat-zone))
+
+        (subscribe-to-click (arena-creation-dialog :arena-create)
+          (post 'new-arena-requested :name (text-of arena-name-edit))
+          (hide-window arena-creation-dialog)
+          (subscribe 'keyboard-event #'toggle-game-menu))
+
+        (subscribe-body (button-click-event (poiu-button))
+          (when (eq :quit (name-of poiu-button))
+            (unsubscribe 'keyboard-event #'toggle-game-menu)
+            (hide-window game-menu) (show-window main-menu)
+            (post 'arena-leave-requested))))
+
+      (subscribe-body (item-selected (source item))
         (when (eq source arena-list)
           (setf selected-arena (item-name-of item)))))))

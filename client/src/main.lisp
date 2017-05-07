@@ -5,7 +5,7 @@
 (defvar *main-latch* (mt:make-latch))
 
 
-(defclass mortar-combat (enableable generic-system dispatcher)
+(defclass mortar-combat (enableable dispatching generic-system)
   ((scene :initform nil :reader scene-of)
    (task-queue :initform nil)
 
@@ -17,8 +17,7 @@
    (keymap :initform nil)
    (arena :initform nil :reader arena-of)
    (arena-leave-handler :initform nil))
-  (:default-initargs :depends-on '(event-system
-                                   graphics-system
+  (:default-initargs :depends-on '(graphics-system
                                    physics-system
                                    audio-system)))
 
@@ -51,7 +50,7 @@
     (flet ((node (name)
              (find-node (root-of scene) name)))
       (setf arena-leave-handler
-            (subscribe-body-to (arena-leave-requested ()) (events)
+            (subscribe-body (arena-leave-requested ())
               (run (>> (leave-arena remote-server)
                        (-> this ()
                          (disable-node (node :camera))
@@ -80,7 +79,7 @@
                  (lock-cursor)))))))
 
 
-(define-event-handler on-arena-create new-arena-requested (ev name)
+(define-event-handler on-arena-create ((ev new-arena-requested) name)
   (create-combat-arena name))
 
 
@@ -112,7 +111,7 @@
     (get-arena-list remote-server)))
 
 
-(define-event-handler on-arena-join arena-join-requested (ev name)
+(define-event-handler on-arena-join ((ev arena-join-requested) name)
   (join-combat-arena name))
 
 
@@ -159,29 +158,16 @@
   (with-slots (scene keymap task-queue game-client identity arena) this
     (register-resource-loader (make-resource-loader (asset-path "font.brf")
                                                     (asset-path "dude-and-mortar.brf")))
-    (register-event-classes (events)
-                            'player-added
-                            'game-state-updated
-                            'camera-rotated
-                            'movement-changed
-                            'trigger-pulled
-                            'exit-requested
-                            'new-arena-requested
-                            'arena-join-requested
-                            'arena-leave-requested
-                            'hit-detected)
-    (register-poiu-events (events))
-    (setf keymap (make-instance 'keymap)
+    (setf keymap (make-keymap)
           task-queue (make-task-queue))
     (let ((prev-x nil)
           (prev-y nil)
-          (movement-keys)
-          (eve (events)))
+          (movement-keys))
       (labels ((rotate-camera (x y)
                  (when (and prev-x prev-y)
                    (let ((ax (/ (- y prev-y) 1000))
                          (ay (/ (- x prev-x) 1000)))
-                     (post (make-camera-rotated ax (- ay)) eve)))
+                     (post 'camera-rotated :ax ax :ay (- ay))))
                  (setf prev-x x
                        prev-y y))
                (update-movement ()
@@ -203,7 +189,9 @@
                                                  ('(:s :a) :south-west)
                                                  ('(:s :d) :south-east))))))
                      (when arena
-                       (post (make-movement-changed (player-of arena) direction) eve)))))
+                       (post 'movement-changed
+                             :player (player-of arena)
+                             :direction direction)))))
                (update-buttons (button)
                  (lambda (state)
                    (case state
@@ -215,13 +203,13 @@
                    (let ((player (player-of arena)))
                      (when game-client
                        (send-shot-info game-client player))
-                     (post (make-trigger-pulled player) eve)))))
+                     (post 'trigger-pulled :player player)))))
         (bind-cursor keymap #'rotate-camera)
-        (bind-button keymap :w (update-buttons :w))
-        (bind-button keymap :s (update-buttons :s))
-        (bind-button keymap :a (update-buttons :a))
-        (bind-button keymap :d (update-buttons :d))
-        (bind-button keymap :mouse-left #'shoot)))
+        (bind-key keymap :w (update-buttons :w))
+        (bind-key keymap :s (update-buttons :s))
+        (bind-key keymap :a (update-buttons :a))
+        (bind-key keymap :d (update-buttons :d))
+        (bind-button keymap :left #'shoot)))
 
     (enable-keymap keymap)
 
@@ -275,7 +263,7 @@
       (when server
         (disconnect-from-server server)))
     (when arena-leave-handler
-      (unsubscribe-from 'arena-leave-requested arena-leave-handler (events)))
+      (unsubscribe 'arena-leave-requested arena-leave-handler))
     ;; fixme: dispose scene after all
     #++(dispose scene)
     (setf remote-server nil
@@ -295,11 +283,11 @@
   (mt:open-latch *main-latch*))
 
 
-(define-event-handler on-close viewport-hiding-event (ev)
+#++(define-event-handler on-close viewport-hiding-event (ev)
   (post (make-exit-requested) (events)))
 
 
-(define-event-handler on-exit exit-requested (ev)
+#++(define-event-handler on-exit exit-requested (ev)
   (in-new-thread "exit-thread"
     (stop)))
 
