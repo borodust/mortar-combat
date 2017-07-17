@@ -2,6 +2,6 @@
 
 
 (defpackage :mortar-combat.proxy
-  (:use :cl :ge.ng :ge.util :mortar-combat.common)
+  (:use :cl :ge.ng :ge.net :ge.util :mortar-combat.common)
   (:export start
            stop))

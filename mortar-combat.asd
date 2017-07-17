@@ -9,11 +9,11 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "GPLv3"
-  :depends-on (cl-bodge/utils cl-conspack)
+  :depends-on (cl-bodge/utils cl-bodge/network)
   :serial t
   :pathname "common/"
   :components ((:file "packages")
-               (:file "process-command")))
+               (:file "messages")))
 
 
 (defsystem mortar-combat
@@ -22,8 +22,7 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "GPLv3"
-  :depends-on (log4cl uiop cl-muth bodge-blobs cl-bodge usocket
-                      mortar-combat/common)
+  :depends-on (log4cl uiop cl-muth bodge-blobs cl-bodge mortar-combat/common)
   :serial t
   :pathname "client/src/"
   :components ((:file "packages")
@@ -39,6 +38,7 @@
                (:file "ball")
                (:file "shaders/dude")
                (:file "shaders/passthru")
+               (:file "messages")
                (:file "connector")
                (:file "game-server")
                (:file "game-client")
@@ -64,8 +64,9 @@
   :author "Pavel Korolev"
   :mailto "dev@borodust.org"
   :license "GPLv3"
-  :depends-on (log4cl cl-muth cl-async flexi-streams mortar-combat/common
-                      cl-bodge/engine cl-bodge/utils ironclad uuid)
+  :depends-on (log4cl cl-muth flexi-streams mortar-combat/common
+                      cl-bodge/engine cl-bodge/utils cl-bodge/network
+                      ironclad uuid)
   :serial t
   :pathname "proxy/"
   :components ((:file "packages")
@@ -73,4 +74,4 @@
                (:file "arena")
                (:file "peer")
                (:file "proxy")
-               (:file "commands")))
+               (:file "messages")))
