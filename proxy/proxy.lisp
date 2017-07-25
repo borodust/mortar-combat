@@ -16,12 +16,13 @@
 
 (defmethod initialize-system :after ((this mortar-combat-proxy))
   (with-slots (server peer-registry) this
-    (run (>> (accept-flow "0.0.0.0" 8778 (lambda (stream)
-                                           (make-instance 'server-channel
-                                                          :stream stream
-                                                          :system this)))
-             (instantly (s)
-               (setf server s))))))
+    (flet ((make-server-channel (stream)
+             (make-instance 'server-channel
+                            :stream stream
+                            :system this)))
+      (run (>> (accept-flow 8778 #'make-server-channel)
+               (instantly (s)
+                 (setf server s)))))))
 
 
 (defmethod make-system-context ((this mortar-combat-proxy))

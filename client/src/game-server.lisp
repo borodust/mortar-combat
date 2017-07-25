@@ -1,31 +1,25 @@
 (in-package :mortar-combat)
 
 
-(defclass game-server (subscribing connector)
-  ((arena :initarg :arena))
-  (:default-initargs :host (property :server-address "127.0.0.1")
-    :port (property :proxy-server-port 8222)))
+(defclass game-server-channel (subscribing connector-channel)
+  ((arena :initarg :arena)))
 
 
-(defun make-game-server (arena)
-  (make-instance 'game-server :arena arena))
+(defun make-game-server-channel (stream arena)
+  (make-instance 'game-server-channel :stream stream :arena arena))
 
 
 (defun broadcast-shot-info (server player)
-  (run (-> (server :command :server-shot-info
-                   :no-reply t
-                   :player-name (name-of player))
-           ())))
+  (run (relaying-flow server (make-message 'server-shot-info
+                                          :player-name (name-of player)))))
 
 
 (defun broadcast-hit-info (server player)
-  (run (-> (server :command :server-hit-info
-                   :no-reply t
-                   :player-name (name-of player))
-           ())))
+  (run (relaying-flow server (make-message 'server-hit-info
+                                          :player-name (name-of player)))))
 
 
-(defmethod initialize-instance :after ((this game-server) &key)
+(defmethod initialize-instance :after ((this game-server-channel) &key)
   (with-slots (arena) this
     (flet ((broadcast-shot (ev)
              (broadcast-shot-info this (player-from ev)))
@@ -38,33 +32,37 @@
       (employ-subscriber this))))
 
 
-(defmethod process-command ((command (eql :register-player)) message)
-  (with-slots (arena) *connector*
-    (with-message (name) message
-      (let ((player (make-instance 'proxy :name name)))
-        (add-dude arena player)
-        (post 'player-added :player player))))
-  nil)
+(defmethod receive-message ((server game-server-channel) (message register-player))
+  (with-slots (arena) server
+    (let* ((name (register-player-name message))
+           (player (make-instance 'proxy :name name)))
+      (add-dude arena player)
+      (post 'player-added :player player)))
+  (call-next-method))
 
 
-(defmethod process-command ((command (eql :player-info)) message)
-  (with-slots (arena) *connector*
-    (with-message (name position rotation timestamp movement) message
+(defmethod receive-message ((server game-server-channel) (message player-info))
+  (with-slots (arena) server
+    (let ((name (player-info-name message))
+          (position (player-info-position message))
+          (rotation (player-info-rotation message))
+          (timestamp (player-info-timestamp message))
+          (movement (player-info-movement message)))
       (when-let ((player (find-dude arena name)))
         (update-proxy player
                       (sequence->vec2 position)
                       (sequence->vec2 rotation)
                       timestamp
                       movement))))
-  nil)
+  (call-next-method))
 
 
-(defmethod process-command ((command (eql :shot-info)) message)
-  (with-slots (arena) *connector*
-    (with-message (name) message
+(defmethod receive-message ((server game-server-channel) (message shot-info))
+  (with-slots (arena) server
+    (let ((name (shot-info-name message)))
       (when-let ((player (find-dude arena name)))
-        (post (make-trigger-pulled player) (events)))))
-  nil)
+        (post (make-trigger-pulled player)))))
+  (call-next-method))
 
 
 (defun broadcast-game-state (server)
@@ -77,8 +75,7 @@
                    :rotation (list (x rot) (y rot))
                    :movement (movement-of p)))))
       (let ((proxies (mapcar #'player-info (cons (player-of arena) (dudes-of arena)))))
-        (run (-> (server :command :game-state
-                         :no-reply t
-                         :timestamp (real-time-seconds)
-                         :state (list :player-list proxies))
-                 ()))))))
+        (run (relaying-flow server
+                           (make-message 'game-state
+                                         :timestamp (real-time-seconds)
+                                         :state (list :player-list proxies))))))))

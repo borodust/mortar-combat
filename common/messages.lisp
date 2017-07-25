@@ -37,6 +37,12 @@
 (defmessage arena-exiting-request (identified-message))
 
 
+(defmessage ping (identified-message))
+
+
+(defmessage pong (reply-message))
+
+
 (defmessage relay-request ()
   peer data)
 

@@ -49,7 +49,7 @@
     (>> (resource-flow "mesh.Mortar" "MortarSkeleton"
                        "animation.MortarRest"
                        (shading-program-resource-name "dude-program"))
-        (instantly (m s a p)
+        (instantly ((m s a p))
           (setf mesh m
                 skeleton s
                 animation a

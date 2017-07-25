@@ -21,7 +21,7 @@
 
 (defmethod receive-message :around ((this server-channel) message)
   (with-slots (system) this
-    (let* ((*peer* (find-peer-by-stream (peer-registry-of this) (stream-of this)))
+    (let* ((*peer* (find-peer-by-stream (peer-registry-of system) (stream-of this)))
            (*system* system)
            (*channel* this)
            (*message* message))
@@ -107,7 +107,13 @@
 (defmethod receive-message ((this server-channel) (message relay-request))
   (with-message-fields (peer data) message
     (let ((reg (peer-registry-of *system*)))
-      (if-let ((target-peer (find-peer-by-name reg peer)))
-        (send-message (channel-of target-peer) message)
-        (reply-with 'peer-not-found-error
-                    :text (format nil "Peer with name ~A not found" peer))))))
+      (if peer
+          (if-let ((target-peer (find-peer-by-name reg peer)))
+            (send-message (channel-of target-peer) message)
+            (reply-with 'peer-not-found-error
+                        :text (format nil "Peer with name ~A not found" peer)))
+          (when-let ((arena (find-arena-by-peer (arena-registry-of *system*) *peer*)))
+            (if (eq *peer* (server-of arena))
+                (loop for peer in (clients-of arena)
+                   do (send-message (channel-of peer) (relay-request-data message)))
+                (send-message (server-of arena) (relay-request-data message))))))))

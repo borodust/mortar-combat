@@ -63,7 +63,7 @@
 (defmethod initialization-flow ((this room-model) &key)
   (with-slots (program floor mesh) this
     (>> (resource-flow "mesh.Room" (shading-program-resource-name "passthru-program"))
-        (instantly (m p)
+        (instantly ((m p))
           (setf program p
                 mesh m))
         (-> ((physics)) ()

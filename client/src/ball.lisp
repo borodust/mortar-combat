@@ -87,7 +87,7 @@
 (defmethod initialization-flow ((this ball-model) &key position force owner)
   (with-slots (body mesh program) this
     (>> (resource-flow "mesh.Ball" (shading-program-resource-name "passthru-program"))
-        (instantly (m p)
+        (instantly ((m p))
           (setf mesh m
                 program p))
         (-> ((physics)) ()

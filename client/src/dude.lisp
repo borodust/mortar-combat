@@ -106,7 +106,7 @@
                        "animation.Running"
                        "animation.Strafing"
                        (shading-program-resource-name "dude-program"))
-        (instantly (m s rest run strafe p)
+        (instantly ((m s rest run strafe p))
           (setf mesh m
                 skeleton s
                 strafe-animation strafe
